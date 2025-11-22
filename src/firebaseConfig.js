@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import {
   getFirestore, collection, getDocs,
   addDoc, doc, updateDoc, Timestamp,
-  query, where, deleteDoc, orderBy // Đảm bảo CÓ deleteDoc
+  query, where, deleteDoc, orderBy
 } from "firebase/firestore";
 import {
   getAuth, GoogleAuthProvider,
@@ -26,17 +26,32 @@ const provider = new GoogleAuthProvider();
 
 const incidentsCollection = collection(db, "incidents");
 
-// Lấy các bài CÔNG KHAI (đã duyệt)
-const getIncidents = () => {
+// --- HÀM LẤY DỮ LIỆU CÓ LỌC THỜI GIAN ---
+// hoursFilter có thể là số (48) hoặc chuỗi 'all'
+const getIncidents = (hoursFilter = 48) => {
+
+  // 1. Nếu chọn 'all', lấy hết (chỉ lọc bài đã duyệt)
+  if (hoursFilter === 'all') {
+    const q = query(incidentsCollection,
+      where("status", "not-in", ["pending"]),
+      orderBy("status"), // Sắp xếp status trước để thỏa mãn composite index
+      orderBy("time", "desc")
+    );
+    return getDocs(q);
+  }
+
+  // 2. Nếu chọn giờ cụ thể, thêm điều kiện thời gian
+  const timeThreshold = Timestamp.fromMillis(Date.now() - hoursFilter * 3600 * 1000);
+
   const q = query(incidentsCollection,
     where("status", "not-in", ["pending"]),
-    orderBy("status"),
+    where("time", ">=", timeThreshold),
     orderBy("time", "desc")
   );
   return getDocs(q);
 };
+// ----------------------------------------
 
-// Lấy TẤT CẢ bài (cho Admin)
 const getAllIncidentsForAdmin = () => {
   const q = query(incidentsCollection,
     orderBy("time", "desc")
@@ -49,7 +64,6 @@ const updateIncident = (id, data) => {
   const incidentRef = doc(db, "incidents", id);
   return updateDoc(incidentRef, data);
 };
-// HÀM XÓA BÀI
 const deleteIncident = (id) => {
   const incidentRef = doc(db, "incidents", id);
   return deleteDoc(incidentRef);
@@ -66,6 +80,6 @@ export {
   getAllIncidentsForAdmin,
   addIncident,
   updateIncident,
-  deleteIncident, // ĐÃ EXPORT HÀM XÓA
+  deleteIncident,
   serverTimestamp
 };

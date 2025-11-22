@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { updateIncident, deleteIncident } from '../firebaseConfig';
 
-function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardClick }) {
+function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardClick, onEditIncident }) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   let typeName = '';
@@ -31,46 +31,56 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
 
   const handleStatusUpdate = async (newStatus, event) => {
     event.stopPropagation();
-
     if (!isAdmin) {
       alert("Bạn phải đăng nhập với tư cách Quản lý để thực hiện việc này.");
       try {
         await handleLogin();
       } catch (error) {
-        console.error("Đăng nhập thất bại", error);
+        // SỬA LỖI 1: In lỗi ra console để biến 'error' được sử dụng
+        console.error("Lỗi đăng nhập:", error);
       }
       return;
     }
-
     setIsUpdating(true);
     try {
       await updateIncident(incident.id, { status: newStatus });
       onStatusUpdate();
     } catch (error) {
-      console.error("Lỗi khi cập nhật trạng thái:", error);
+      // SỬA LỖI 2: In lỗi ra console
+      console.error("Lỗi cập nhật trạng thái:", error);
       alert("Cập nhật thất bại, vui lòng thử lại.");
+    } finally {
+        setIsUpdating(false);
     }
   };
 
   const handleDelete = async (event) => {
     event.stopPropagation();
-
     if (!isAdmin) {
       alert("Chỉ Quản lý mới được xóa bài.");
       await handleLogin();
       return;
     }
-
     if (window.confirm("Bạn có chắc chắn muốn xóa vĩnh viễn phản ánh này?")) {
       setIsUpdating(true);
       try {
         await deleteIncident(incident.id);
         onStatusUpdate();
       } catch (error) {
-        console.error("Lỗi khi xóa bài:", error);
+        // SỬA LỖI 3: In lỗi ra console
+        console.error("Lỗi xóa bài:", error);
         alert("Xóa thất bại, vui lòng thử lại.");
-      }
+      } finally {
+        setIsUpdating(false);
     }
+    }
+  };
+
+  const handleEditClick = (event) => {
+      event.stopPropagation();
+      if (onEditIncident) {
+          onEditIncident(incident);
+      }
   };
 
   const googleMapsLink = incident.lat && incident.lng
@@ -78,7 +88,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
     : null;
 
   return (
-    // THÊM onClick VÀO THẺ DIV CHÍNH
     <div
       className="incident-card"
       data-type={incident.type}
@@ -116,6 +125,14 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
             <span style={{color: '#aaa', fontSize: '13px'}}>Chưa có tọa độ</span>
           )}
         </div>
+
+        {/* Nút Edit chỉ hiện cho Admin */}
+        {isAdmin && (
+            <button className="bookmark-btn" title="Chỉnh sửa" onClick={handleEditClick} style={{marginRight: '8px', color: '#3b82f6'}}>
+                <i className="fas fa-edit"></i>
+            </button>
+        )}
+
         <button className="bookmark-btn" onClick={(e) => e.stopPropagation()}>
           <i className="far fa-bookmark"></i>
         </button>
@@ -123,7 +140,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
 
       {isAdmin && (
         <div className="incident-actions">
-
           {currentStatus === 'pending' && (
             <>
               <button

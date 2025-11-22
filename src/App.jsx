@@ -18,6 +18,7 @@ const ADMIN_EMAILS = [
 ];
 
 const timeFilterToMs = (filter) => {
+  if (filter === 'all') return Infinity;
   const hours = parseInt(filter.replace('h', ''));
   if (isNaN(hours)) return Infinity;
   return hours * 60 * 60 * 1000;
@@ -26,6 +27,8 @@ const timeFilterToMs = (filter) => {
 function App() {
   const [incidents, setIncidents] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingIncident, setEditingIncident] = useState(null);
+
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentRegionKey, setCurrentRegionKey] = useState('vietnam');
@@ -33,15 +36,29 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [timeFilter, setTimeFilter] = useState('48h');
+  const [timeFilter, setTimeFilter] = useState('all');
   const [distanceFilter, setDistanceFilter] = useState('>100km');
   const [hidePOIs, setHidePOIs] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
 
   const location = useLocation();
+
+  // Xác định trang hiện tại
   const isMapPage = location.pathname === '/ban-do';
+  const isHomePage = location.pathname === '/';
+
+  const handleEditIncident = (incident) => {
+    setEditingIncident(incident);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+      setIsModalOpen(false);
+      setEditingIncident(null);
+  };
 
   const loadData = async (isAdminUser) => {
+    // Chỉ tải dữ liệu khi ở trang bản đồ để tiết kiệm tài nguyên
     if (!isMapPage) {
       setIncidents([]);
       return;
@@ -51,7 +68,13 @@ function App() {
       if (isAdminUser) {
         querySnapshot = await getAllIncidentsForAdmin();
       } else {
-        querySnapshot = await getIncidents();
+        let hours;
+        if (timeFilter === 'all') {
+          hours = 'all';
+        } else {
+          hours = parseInt(timeFilter.replace('h', '')) || 48;
+        }
+        querySnapshot = await getIncidents(hours);
       }
 
       const incidentsData = [];
@@ -71,15 +94,12 @@ function App() {
       setIncidents(incidentsData);
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu:", error);
-      if (error.code === 'failed-precondition' && error.message.includes('index')) {
-        console.error("LỖI FIREBASE: Bạn cần tạo chỉ mục (index).");
-      }
     }
   };
 
   useEffect(() => {
     loadData(isAdmin);
-  }, [isAdmin, location.pathname]);
+  }, [isAdmin, location.pathname, timeFilter]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -103,6 +123,17 @@ function App() {
       await handleGoogleLogin();
     } catch (error) {
       console.error("Lỗi khi đăng nhập Google:", error);
+      let msg = "Đăng nhập thất bại.";
+      if (error.code === 'auth/popup-closed-by-user') {
+        msg = "Bạn đã đóng cửa sổ đăng nhập.";
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        msg = "Xung đột nhiều popup. Vui lòng thử lại.";
+      } else if (error.code === 'auth/unauthorized-domain') {
+        msg = "LỖI CẤU HÌNH: Tên miền này chưa được phép dùng Firebase Auth.";
+      } else {
+        msg = `Lỗi: ${error.message}`;
+      }
+      alert(msg);
     }
   };
 
@@ -127,7 +158,6 @@ function App() {
           resolve(location);
         },
         (error) => {
-          alert("Không thể lấy vị trí của bạn. Vui lòng cho phép.");
           reject(error);
         }
       );
@@ -136,12 +166,10 @@ function App() {
 
   const handleDistanceFilterChange = async (distanceKey) => {
     setDistanceFilter(distanceKey);
-
     if (!userLocation && distanceKey !== '>100km') {
       try {
         await handleGetUserLocation();
       } catch {
-        // ĐÃ SỬA: Xóa hoàn toàn biến (error) ở đây
         setDistanceFilter('>100km');
       }
     }
@@ -188,12 +216,10 @@ function App() {
       if (distanceLimitKm !== Infinity) {
         if (!userLocation) return false;
         if (!incident.lat || !incident.lng) return false;
-
         const distance = getDistanceFromLatLonInKm(
           userLocation.lat, userLocation.lng,
           incident.lat, incident.lng
         );
-
         if (distance > distanceLimitKm) return false;
       }
 
@@ -225,20 +251,30 @@ function App() {
     onDistanceFilterChange: handleDistanceFilterChange,
     hidePOIs,
     onHidePOIsChange: setHidePOIs,
+    onEditIncident: handleEditIncident
   };
 
   return (
     <>
       <Header
-        onRegionChange={handleRegionChange}
+        // Chỉ truyền hàm đổi vùng khi ở trang bản đồ
+        onRegionChange={isMapPage ? handleRegionChange : null}
         currentRegionKey={currentRegionKey}
+
+        user={user}
+        isAdmin={isAdmin}
+        onLogin={triggerLogin}
+
+        // LOGIC MỚI: Chỉ hiện nút đăng nhập ở trang chủ (isHomePage)
+        showAuth={isHomePage}
       />
 
       <Outlet context={outletContext} />
 
       <ReportModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
+        incidentToEdit={editingIncident}
       />
 
       <FilterModal

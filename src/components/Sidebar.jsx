@@ -1,44 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import IncidentList from './IncidentList';
-import { auth } from '../firebaseConfig';
 
 function Sidebar({
   incidents,
   onOpenModal,
   onOpenFilterModal,
   onIncidentAdded,
-  user,
-  isAdmin,
-  handleLogin,
+  isAdmin,        // Giữ lại để truyền xuống IncidentList
+  handleLogin,    // Giữ lại để truyền xuống IncidentList
   currentFilter,
   searchQuery,
   onSearchChange,
-  onCardClick // Nhận prop
+  onCardClick,
+  onEditIncident
 }) {
 
-  const handleLogout = () => {
-    auth.signOut();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
   };
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isExpanded ? 'expanded' : ''}`}>
 
-      <div className="admin-panel">
-        {user && isAdmin ? (
-          <div className="admin-info">
-            <span>Chào Admin: <strong>{user.email}</strong></span>
-            <button onClick={handleLogout} className="logout-btn">Đăng xuất</button>
-          </div>
-        ) : user ? (
-          <div className="admin-info">
-            <span>Chào bạn: <strong>{user.email}</strong></span>
-            <button onClick={handleLogout} className="logout-btn">Đăng xuất</button>
-          </div>
-        ) : (
-          <button onClick={handleLogin} className="login-btn">
-            Đăng nhập (Quản lý)
-          </button>
-        )}
+      {/* Thanh kéo cho Mobile */}
+      <div className="sidebar-handle-container mobile-only" onClick={toggleExpand}>
+        <div className="sidebar-handle"></div>
       </div>
 
       <div className="search-box">
@@ -50,6 +38,7 @@ function Sidebar({
             placeholder="Tìm kiếm địa điểm, SĐT..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
+            onFocus={() => setIsExpanded(true)}
           />
         </div>
         <button className="filter-btn" onClick={onOpenFilterModal}>
@@ -63,7 +52,8 @@ function Sidebar({
         isAdmin={isAdmin}
         handleLogin={handleLogin}
         currentFilter={currentFilter}
-        onCardClick={onCardClick} // Truyền prop xuống
+        onCardClick={onCardClick}
+        onEditIncident={onEditIncident}
       />
 
       <div className="sidebar-footer">

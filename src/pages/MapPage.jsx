@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Thêm useState
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import MapWrapper from '../components/MapWrapper';
@@ -17,14 +17,20 @@ function MapPage() {
     onFilterChange,
     incidentCounts,
     searchQuery,
-    onSearchChange
+    onSearchChange,
+    timeFilter,
+    onOpenFilterModal: handleOpenFilter
   } = useOutletContext();
 
-  // STATE MỚI: Lưu tọa độ (lat, lng) khi nhấn vào card
   const [selectedCoords, setSelectedCoords] = useState(null);
 
-  // HÀM MỚI: Được gọi từ IncidentCard
+  useEffect(() => {
+    setSelectedCoords(null);
+  }, [currentRegion]);
+
+  // Hàm này dùng chung cho cả Sidebar Card và Marker trên bản đồ
   const handleCardClick = (lat, lng) => {
+    // Cập nhật state để kích hoạt MapLogic (dịch chuyển)
     setSelectedCoords([lat, lng]);
   };
 
@@ -41,7 +47,7 @@ function MapPage() {
         currentFilter={currentFilter}
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
-        onCardClick={handleCardClick} // Truyền hàm xử lý click xuống
+        onCardClick={handleCardClick}
       />
 
       <div className="map-container">
@@ -51,7 +57,11 @@ function MapPage() {
           currentFilter={currentFilter}
           onFilterChange={onFilterChange}
           incidentCounts={incidentCounts}
-          selectedCoords={selectedCoords} // Truyền tọa độ được chọn xuống
+          selectedCoords={selectedCoords}
+          timeFilter={timeFilter}
+          onOpenFilterModal={handleOpenFilter}
+          // THÊM DÒNG NÀY: Truyền hàm xử lý click xuống MapWrapper
+          onMarkerClick={handleCardClick}
         />
       </div>
     </div>

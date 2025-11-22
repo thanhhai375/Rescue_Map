@@ -7,7 +7,8 @@ function IncidentList({
   isAdmin,
   handleLogin,
   currentFilter,
-  onCardClick // Nhận prop
+  onCardClick,
+  onEditIncident // Nhận prop này
 }) {
 
   const filteredIncidents = incidents.filter(incident => {
@@ -29,7 +30,8 @@ function IncidentList({
             onStatusUpdate={onIncidentAdded}
             isAdmin={isAdmin}
             handleLogin={handleLogin}
-            onCardClick={onCardClick} // Truyền prop xuống
+            onCardClick={onCardClick}
+            onEditIncident={onEditIncident} // Truyền tiếp xuống Card
           />
         ))
       )}

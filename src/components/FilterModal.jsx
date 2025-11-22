@@ -35,6 +35,15 @@ function FilterModal({
           <div className="filter-group">
             <h4>Khoảng thời gian</h4>
             <div className="filter-options">
+              {/* --- THÊM NÚT TẤT CẢ --- */}
+              <button
+                className={`filter-btn ${timeFilter === 'all' ? 'active' : ''}`}
+                onClick={() => onTimeFilterChange('all')}
+              >
+                Tất cả
+              </button>
+              {/* ----------------------- */}
+
               <button
                 className={`filter-btn ${timeFilter === '1h' ? 'active' : ''}`}
                 onClick={() => onTimeFilterChange('1h')}
@@ -74,9 +83,6 @@ function FilterModal({
             </div>
           </div>
 
-          {/* ĐÃ XÓA NÚT "LẤY VỊ TRÍ" */}
-
-          {/* Lọc Khoảng cách (Luôn bật) */}
           <div className="filter-group">
             <h4>Khoảng cách</h4>
             <div className="filter-options">
