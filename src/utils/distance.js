@@ -16,7 +16,6 @@ function deg2rad(deg) {
   return deg * (Math.PI / 180);
 }
 
-// Hàm chuyển đổi bộ lọc khoảng cách (VD: '5km' -> 5)
 export const distanceFilterToKm = (filter) => {
   if (filter === '>100km') return Infinity;
   const km = parseInt(filter.replace('km', ''));

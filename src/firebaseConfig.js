@@ -71,6 +71,7 @@ const deleteIncident = (id) => {
 const serverTimestamp = () => Timestamp.now();
 const handleGoogleLogin = () => signInWithPopup(auth, provider);
 
+
 export {
   db,
   auth,

@@ -211,4 +211,5 @@ const getTypeName = (type) => {
     return 'Cảnh báo';
 }
 
+
 export default MapWrapper;

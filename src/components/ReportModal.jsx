@@ -347,4 +347,5 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
   );
 }
 
+
 export default ReportModal;

@@ -89,4 +89,5 @@ function MapUI({ currentFilter, onFilterChange, counts, map, timeFilter, onOpenF
   );
 }
 
+
 export default MapUI;

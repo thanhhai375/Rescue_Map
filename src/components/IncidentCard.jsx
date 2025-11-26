@@ -195,4 +195,5 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
   );
 }
 
+
 export default IncidentCard;

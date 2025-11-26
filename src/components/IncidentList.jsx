@@ -39,4 +39,5 @@ function IncidentList({
   );
 }
 
+
 export default IncidentList;

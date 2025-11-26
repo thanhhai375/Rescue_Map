@@ -75,4 +75,5 @@ function Header({ onRegionChange, currentRegionKey, user, onLogin, showAuth = fa
   );
 }
 
+
 export default Header;

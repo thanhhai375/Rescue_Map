@@ -50,6 +50,7 @@ function MapPage() {
         onCardClick={handleCardClick}
       />
 
+
       <div className="map-container">
         <MapWrapper
           incidents={incidents}
