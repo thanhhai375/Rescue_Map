@@ -226,10 +226,11 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
                 onChange={handleInputChange}
                 required
               >
-                <option value="">Chọn loại</option>
-                <option value="rescue">Cần cứu hộ khẩn cấp</option>
-                <option value="help">Đội cứu hộ có sẵn</option>
-                <option value="warning">Cảnh báo nguy hiểm</option>
+                <option value="">Chọn phân loại</option>
+                <option value="rescue">🆘 Cần cứu hộ khẩn cấp</option>
+                <option value="help">🤝 Đội cứu trợ / Từ thiện</option>
+                <option value="warning">⚠️ Cảnh báo nguy hiểm</option>
+                <option value="news">📰 Tin tức </option> {/* MỚI */}
               </select>
             </div>
 

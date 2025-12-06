@@ -35,37 +35,33 @@ function MapUI({ currentFilter, onFilterChange, counts, map, timeFilter, onOpenF
   return (
     <>
       <div className="map-controls-top">
-        <button
-          className={`control-btn ${currentFilter === 'all' ? 'active' : ''}`}
-          onClick={() => onFilterChange('all')}
-        >
-          <i className="fas fa-map"></i>
-          <span>Tất cả</span>
-          <span className="count-badge">{counts.all}</span>
+        {/* Nút Tất cả */}
+        <button className={`control-btn ${currentFilter === 'all' ? 'active' : ''}`} onClick={() => onFilterChange('all')}>
+          <i className="fas fa-layer-group"></i> <span>Tất cả</span>
         </button>
-        <button
-          className={`control-btn ${currentFilter === 'rescue' ? 'active' : ''}`}
-          onClick={() => onFilterChange('rescue')}
-        >
-          <i className="fas fa-ambulance"></i>
-          <span>Cần cứu</span>
-          <span className="count-badge">{counts.rescue}</span>
+
+        {/* Nút Cần cứu */}
+        <button className={`control-btn ${currentFilter === 'rescue' ? 'active' : ''}`} onClick={() => onFilterChange('rescue')}>
+          <i className="fas fa-ambulance"></i> <span>Cần cứu</span> <span className="count-badge">{counts.rescue}</span>
         </button>
-        <button
-          className={`control-btn ${currentFilter === 'help' ? 'active' : ''}`}
-          onClick={() => onFilterChange('help')}
-        >
-          <i className="fas fa-hands-helping"></i>
-          <span>Đội cứu hộ</span>
-          <span className="count-badge">{counts.help}</span>
+
+        {/* Nút Đội cứu hộ */}
+        <button className={`control-btn ${currentFilter === 'help' ? 'active' : ''}`} onClick={() => onFilterChange('help')}>
+          <i className="fas fa-hands-helping"></i> <span>Cứu trợ</span> <span className="count-badge">{counts.help}</span>
         </button>
+
+        {/* Nút Cảnh báo */}
+        <button className={`control-btn ${currentFilter === 'warning' ? 'active' : ''}`} onClick={() => onFilterChange('warning')}>
+          <i className="fas fa-exclamation-triangle"></i> <span>Cảnh báo</span> <span className="count-badge">{counts.warning}</span>
+        </button>
+
+        {/* --- NÚT MỚI: TIN TỨC --- */}
         <button
-          className={`control-btn ${currentFilter === 'warning' ? 'active' : ''}`}
-          onClick={() => onFilterChange('warning')}
+          className={`control-btn ${currentFilter === 'news' ? 'active' : ''}`}
+          onClick={() => onFilterChange('news')}
+          style={{ borderLeft: '1px solid rgba(255,255,255,0.2)' }}
         >
-          <i className="fas fa-exclamation-triangle"></i>
-          <span>Cảnh báo</span>
-          <span className="count-badge">{counts.warning}</span>
+          <i className="fas fa-newspaper"></i> <span>Tin tức</span> <span className="count-badge">{counts.news || 0}</span>
         </button>
       </div>
 

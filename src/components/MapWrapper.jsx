@@ -81,6 +81,7 @@ function MapWrapper({
       case 'rescue': return 'fa-ambulance';
       case 'help': return 'fa-hands-helping';
       case 'warning': return 'fa-exclamation-triangle';
+      case 'news': return 'fa-newspaper'; // MỚI: Icon báo chí
       default: return 'fa-map-marker-alt';
     }
   };
@@ -90,7 +91,7 @@ function MapWrapper({
     if (type === 'rescue') colorClass = 'marker-rescue';
     if (type === 'help') colorClass = 'marker-help';
     if (type === 'warning') colorClass = 'marker-warning';
-
+    if (type === 'news') colorClass = 'marker-news';
     const isPulse = type === 'rescue' ? '<div class="pulse-ring"></div>' : '';
     const iconClass = getIconClass(type);
 
@@ -202,6 +203,7 @@ function MapWrapper({
         </Marker>
       ))}
     </MapContainer>
+
   );
 }
 

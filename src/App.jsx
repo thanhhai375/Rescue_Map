@@ -8,7 +8,8 @@ import {
   getAllIncidentsForAdmin,
   auth,
   onAuthStateChanged,
-  handleGoogleLogin
+  handleGoogleLogin,
+  deleteOldIncidents
 } from './firebaseConfig';
 import { REGIONS } from './regionData';
 import { getDistanceFromLatLonInKm, distanceFilterToKm } from './utils/distance';
@@ -56,6 +57,13 @@ function App() {
       setIsModalOpen(false);
       setEditingIncident(null);
   };
+
+  useEffect(() => {
+    const cleanUp = async () => {
+        await deleteOldIncidents();
+    };
+    cleanUp();
+  }, []);
 
   const loadData = async (isAdminUser) => {
     // Chỉ tải dữ liệu khi ở trang bản đồ để tiết kiệm tài nguyên
@@ -175,13 +183,14 @@ function App() {
     }
   };
 
-  const incidentCounts = useMemo(() => {
+ const incidentCounts = useMemo(() => {
     const approvedIncidents = incidents.filter(i => i.status !== 'pending');
     return {
       all: approvedIncidents.length,
       rescue: approvedIncidents.filter(i => i.type === 'rescue').length,
       help: approvedIncidents.filter(i => i.type === 'help').length,
       warning: approvedIncidents.filter(i => i.type === 'warning').length,
+      news: approvedIncidents.filter(i => i.type === 'news').length, // MỚI
     };
   }, [incidents]);
 
