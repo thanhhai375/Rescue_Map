@@ -4,12 +4,14 @@ import { updateIncident, deleteIncident } from '../firebaseConfig';
 function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardClick, onEditIncident }) {
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // --- SỬA LỖI 1: XỬ LÝ HIỂN THỊ LOẠI TIN ---
   let typeName = '';
   switch(incident.type) {
     case 'rescue': typeName = 'Cần cứu hộ'; break;
     case 'help': typeName = 'Đội cứu hộ'; break;
     case 'warning': typeName = 'Cảnh báo'; break;
-    default: typeName = 'Không rõ';
+    case 'news': typeName = 'Tin tức'; break; // Thêm dòng này
+    default: typeName = 'Tin tức'; // Đổi mặc định thành Tin tức thay vì "Không rõ"
   }
 
   let statusText = 'Mới';
@@ -27,7 +29,7 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
     statusClass = 'resolved';
   }
 
-  const time = incident.time ? new Date(incident.time.seconds * 1000).toLocaleString('vi-VN') : 'Không rõ';
+  const time = incident.time ? new Date(incident.time.seconds * 1000).toLocaleString('vi-VN') : 'Vừa xong';
 
   const handleStatusUpdate = async (newStatus, event) => {
     event.stopPropagation();
@@ -36,7 +38,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
       try {
         await handleLogin();
       } catch (error) {
-        // SỬA LỖI 1: In lỗi ra console để biến 'error' được sử dụng
         console.error("Lỗi đăng nhập:", error);
       }
       return;
@@ -46,7 +47,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
       await updateIncident(incident.id, { status: newStatus });
       onStatusUpdate();
     } catch (error) {
-      // SỬA LỖI 2: In lỗi ra console
       console.error("Lỗi cập nhật trạng thái:", error);
       alert("Cập nhật thất bại, vui lòng thử lại.");
     } finally {
@@ -67,7 +67,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
         await deleteIncident(incident.id);
         onStatusUpdate();
       } catch (error) {
-        // SỬA LỖI 3: In lỗi ra console
         console.error("Lỗi xóa bài:", error);
         alert("Xóa thất bại, vui lòng thử lại.");
       } finally {
@@ -83,8 +82,10 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
       }
   };
 
+  // --- SỬA LỖI 3: LINK GOOGLE MAPS ---
+  // Code cũ: 0{incident.lat} (sai cú pháp) -> Code mới: ${incident.lat}
   const googleMapsLink = incident.lat && incident.lng
-    ? `https://www.google.com/maps?q=${incident.lat},${incident.lng}`
+    ? `http://googleusercontent.com/maps.google.com/?q=${incident.lat},${incident.lng}`
     : null;
 
   return (
@@ -105,7 +106,17 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
         <i className="fas fa-map-marker-alt"></i>
         <span>{incident.location}</span>
       </div>
-      {incident.image && <img src={incident.image} className="incident-image" alt={incident.title} />}
+
+      {/* --- SỬA LỖI 2: XỬ LÝ ẢNH --- */}
+      {/* Chỉ hiện nếu có link ảnh và tự động ẩn (display: none) nếu ảnh lỗi */}
+      {incident.image && incident.image !== "" && (
+        <img
+            src={incident.image}
+            className="incident-image"
+            alt={incident.title}
+            onError={(e) => e.target.style.display = 'none'}
+        />
+      )}
 
       <div className="incident-links">
         <div>
@@ -194,6 +205,5 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
     </div>
   );
 }
-
 
 export default IncidentCard;

@@ -7,6 +7,7 @@ const API_KEY = "AIzaSyBMzuxV7fzGK6OvIpMzX2OiTEuwfYaKg58"; // Key của bạn
 const RSS_FEEDS = [
   "https://vnexpress.net/rss/thoi-su.rss",
   "https://tuoitre.vn/rss/thoi-su.rss",
+  "https://dantri.com.vn/rss/xa-hoi.rss",
   // Tạm tắt bớt các nguồn khác để test ổn định trước
   // "https://thanhnien.vn/rss/thoi-su.rss",
 ];
@@ -34,11 +35,21 @@ const cleanJsonString = (str) => {
   return "{}";
 };
 
-function getArticleImage(article, type) {
-  if (type === 'rescue') return "https://images.unsplash.com/photo-1599930113854-d6d7fd521f10?w=600&q=80";
-  if (type === 'help') return "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600&q=80";
-  if (type === 'warning') return "https://images.unsplash.com/photo-1456543081045-8f65757a3e36?w=600&q=80";
-  return "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&q=80";
+// 🔥 [MỚI] HÀM TRÍCH XUẤT ẢNH THẬT TỪ RSS 🔥
+// Hàm này sẽ tìm thẻ <img src="..."> trong mô tả bài báo.
+// Nếu tìm thấy -> Trả về link ảnh.
+// Nếu KHÔNG tìm thấy -> Trả về null (Không dùng ảnh mẫu nữa).
+function extractImageFromRSS(description) {
+  if (!description) return null;
+  // Regex tìm thuộc tính src bên trong thẻ img
+  const imgRegex = /<img[^>]+src=["']([^"']+)["']/i;
+  const match = description.match(imgRegex);
+
+  // Nếu tìm thấy và link bắt đầu bằng http (để tránh ảnh rác)
+  if (match && match[1] && match[1].startsWith('http')) {
+    return match[1]; // Trả về link ảnh thật
+  }
+  return null; // Không có ảnh thật thì trả về null
 }
 
 const isRecent = (pubDateStr) => {
@@ -64,12 +75,10 @@ async function fetchRSS(url) {
 
     if (data.status === 'ok' && data.items) {
       return data.items.filter(item => {
-        // --- SỬA LỖI CRASH TẠI ĐÂY ---
         // Đảm bảo title và description luôn là chuỗi, không được null
         const title = item.title || "";
         const desc = item.description || "";
         const text = (title + " " + desc).toLowerCase();
-        // -----------------------------
 
         const hasKeyword = VALID_KEYWORDS.some(kw => text.includes(kw));
         const hasIgnore = IGNORE_KEYWORDS.some(kw => text.includes(kw));
@@ -160,7 +169,7 @@ export const scanNewsWithAI = async () => {
           Tin: "${article.title} - ${article.description}"
           Format JSON:
           {
-            "is_relevant": true/false (true nếu là thiên tai/lũ/bão/cứu nạn/cháy),
+            "is_relevant": true/false (true nếu là thiên tai/lũ/bão/cứu nạn/cháy/tai nạn),
             "title": "Tiêu đề ngắn gọn (dưới 10 từ)",
             "location_query": "Địa danh hành chính cụ thể nhất (Xã/Huyện/Tỉnh)",
             "type": "rescue" (cần cứu) hoặc "warning" (cảnh báo) hoặc "news" (tin tức)
@@ -175,10 +184,8 @@ export const scanNewsWithAI = async () => {
 
         if (!finalData.is_relevant) continue;
 
-        // --- SỬA LỖI CRASH TẠI ĐÂY (quan trọng) ---
-        // Nếu AI trả về location_query là null, gán chuỗi rỗng để không bị lỗi .toLowerCase()
+        // Nếu AI trả về location_query là null, gán chuỗi rỗng để không bị lỗi
         const locationQuery = finalData.location_query || "";
-        // ------------------------------------------
 
         let lat = 10.7769, lng = 106.7009;
         const geoData = await getCoordinatesFromAddress(locationQuery);
@@ -193,14 +200,19 @@ export const scanNewsWithAI = async () => {
              if (region) { lat = region.center[0]; lng = region.center[1]; }
         }
 
+        // 🔥 [THAY ĐỔI QUAN TRỌNG Ở ĐÂY] 🔥
+        // Sử dụng hàm mới để lấy ảnh thật.
+        const realImage = extractImageFromRSS(article.description);
+
         const incidentData = {
-          type: finalData.type,
+          type: finalData.type || "news", // Nếu AI quên type thì mặc định là news
           title: finalData.title || article.title,
           description: (article.description || "").replace(/<[^>]*>?/gm, ''),
           sourceLink: article.link,
           location: locationQuery || "Chưa xác định",
           lat, lng,
-          image: getArticleImage(article, finalData.type),
+          // Gán ảnh thật vào đây. Nếu không có thì nó sẽ là null.
+          image: realImage,
           status: 'pending',
           time: serverTimestamp()
         };

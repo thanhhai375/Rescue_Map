@@ -27,7 +27,6 @@ function MapLogic({ coords, region }) {
     if (coords) {
       const targetZoom = 16;
       const targetPoint = map.project(coords, targetZoom);
-      // Dịch tâm lên 300px để chừa chỗ cho Popup
       const newTargetPoint = targetPoint.subtract([0, 300]);
       const newCenter = map.unproject(newTargetPoint, targetZoom);
 
@@ -65,33 +64,45 @@ function MapWrapper({
   selectedCoords,
   timeFilter,
   onOpenFilterModal,
-  onMarkerClick // Nhận prop mới
+  onMarkerClick
 }) {
   const mapUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const mapAttr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  const mapAttr = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   const [mapInstance, setMapInstance] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(region.zoom);
   const MARKER_VISIBLE_THRESHOLD = 8;
-
   const maxBounds = [[-5, 90], [30, 125]];
 
+  // --- 1. CẬP NHẬT ICON CLASS CHO TIN TỨC ---
   const getIconClass = (type) => {
     switch (type) {
       case 'rescue': return 'fa-ambulance';
       case 'help': return 'fa-hands-helping';
       case 'warning': return 'fa-exclamation-triangle';
-      case 'news': return 'fa-newspaper'; // MỚI: Icon báo chí
-      default: return 'fa-map-marker-alt';
+      case 'news': return 'fa-newspaper'; // Thêm icon báo chí
+      default: return 'fa-newspaper'; // Mặc định là báo chí
     }
   };
 
+  const getTypeName = (type) => {
+    if(type === 'rescue') return 'Cần cứu hộ';
+    if(type === 'help') return 'Đội cứu hộ';
+    if(type === 'warning') return 'Cảnh báo';
+    if(type === 'news') return 'Tin tức'; // Thêm tên hiển thị
+    return 'Tin tức';
+  }
+
+  // --- 2. CẬP NHẬT MÀU SẮC MARKER CHO TIN TỨC ---
   const createCustomIcon = (type) => {
-    let colorClass = 'marker-default';
+    let colorClass = 'marker-default'; // Mặc định
+
+    // Gán class màu dựa trên type (CSS đã có sẵn .marker-news trong lần gửi trước)
     if (type === 'rescue') colorClass = 'marker-rescue';
     if (type === 'help') colorClass = 'marker-help';
     if (type === 'warning') colorClass = 'marker-warning';
-    if (type === 'news') colorClass = 'marker-news';
+    if (type === 'news') colorClass = 'marker-news'; // Class màu tím
+
     const isPulse = type === 'rescue' ? '<div class="pulse-ring"></div>' : '';
     const iconClass = getIconClass(type);
 
@@ -138,11 +149,9 @@ function MapWrapper({
           key={incident.id}
           position={[incident.lat, incident.lng]}
           icon={createCustomIcon(incident.type)}
-          // THÊM SỰ KIỆN CLICK CHO MARKER
           eventHandlers={{
             click: () => {
               if (onMarkerClick) {
-                // Gọi hàm này sẽ kích hoạt MapLogic (flyTo với offset 300px)
                 onMarkerClick(incident.lat, incident.lng);
               }
             },
@@ -158,7 +167,7 @@ function MapWrapper({
                 </div>
                 <div className="popup-google-map">
                   <a
-                    href={`https://www.google.com/maps?q=${incident.lat},${incident.lng}`}
+                    href={`http://googleusercontent.com/maps.google.com/?q=${incident.lat},${incident.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -169,7 +178,8 @@ function MapWrapper({
 
               <div className="popup-body-section">
                 <div className="popup-meta">
-                  <span className={`popup-badge status-${incident.type}`}>
+                  {/* Badge hiển thị loại tin */}
+                  <span className={`popup-badge status-${incident.type || 'news'}`}>
                     <i className={`fas ${getIconClass(incident.type)}`}></i> {getTypeName(incident.type)}
                   </span>
                   <span className="popup-time-ago">
@@ -181,8 +191,16 @@ function MapWrapper({
                   {incident.description}
                 </div>
 
+                {/* --- 3. ẨN ẢNH NẾU KHÔNG CÓ TRONG POPUP --- */}
+                {incident.image && incident.image !== "" && (
+                    <img src={incident.image}
+                         style={{width: '100%', borderRadius: '8px', marginTop: '10px', maxHeight: '150px', objectFit: 'cover'}}
+                         onError={(e) => e.target.style.display = 'none'}
+                    />
+                )}
+
                 {incident.sourceLink && (
-                  <div className="popup-source">
+                  <div className="popup-source" style={{marginTop: '10px'}}>
                     <strong>Nguồn: </strong>
                     <a href={incident.sourceLink} target="_blank" rel="noopener noreferrer">
                       Link bài viết <i className="fas fa-link"></i>
@@ -194,8 +212,7 @@ function MapWrapper({
               <div className="popup-disclaimer">
                 <i className="fas fa-exclamation-triangle"></i>
                 <p>
-                  LƯU Ý: Các thông tin kêu gọi tài trợ được đăng tải chưa qua xác minh tính xác thực.
-                  Vui lòng kiểm chứng kỹ lưỡng trước khi thực hiện bất kỳ hoạt động hỗ trợ tài chính nào.
+                  LƯU Ý: Thông tin chưa qua kiểm chứng trực tiếp. Vui lòng xác minh trước khi hỗ trợ.
                 </p>
               </div>
             </div>
@@ -203,15 +220,7 @@ function MapWrapper({
         </Marker>
       ))}
     </MapContainer>
-
   );
 }
-
-const getTypeName = (type) => {
-    if(type === 'rescue') return 'Cần cứu hộ';
-    if(type === 'help') return 'Đội cứu hộ';
-    return 'Cảnh báo';
-}
-
 
 export default MapWrapper;
