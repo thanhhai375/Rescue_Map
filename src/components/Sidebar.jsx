@@ -6,100 +6,178 @@ import { scanNewsWithAI } from '../utils/geminiScanner';
 // CẤU HÌNH: Tự động quét mỗi 60 phút
 const AUTO_SCAN_INTERVAL = 60 * 60 * 1000;
 
-function Sidebar({
-  incidents,
-  onOpenModal,
-  onOpenFilterModal,
-  onIncidentAdded,
-  user,
-  isAdmin,
-  handleLogin,
-  currentFilter,
-  searchQuery,
-  onSearchChange,
-  onCardClick
-}) {
+// --- 1. COMPONENT THÔNG BÁO ĐẸP (MỚI) ---
+const NotificationModal = ({ message, type, onClose }) => {
+  useEffect(() => {
+    // Tự động tắt sau 3 giây
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
 
+  // Cấu hình màu sắc và icon theo loại thông báo
+  let icon = 'fa-info-circle';
+  let iconColor = '#3b82f6'; // Blue
+  let title = 'Thông báo';
+
+  if (type === 'success') {
+    icon = 'fa-check-circle';
+    iconColor = '#10b981'; // Green
+    title = 'Thành công';
+  } else if (type === 'error') {
+    icon = 'fa-exclamation-circle';
+    iconColor = '#ef4444'; // Red
+    title = 'Lỗi';
+  } else if (type === 'warning') {
+    icon = 'fa-exclamation-triangle';
+    iconColor = '#f59e0b'; // Orange
+    title = 'Lưu ý';
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: 'rgba(0,0,0,0.3)', // Nền mờ nhẹ
+      animation: 'fadeIn 0.2s ease-out'
+    }} onClick={onClose}>
+      <div style={{
+        backgroundColor: 'white', padding: '20px 30px', borderRadius: '12px',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        minWidth: '300px', maxWidth: '400px',
+        transform: 'translateY(0)', animation: 'slideDown 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)'
+      }} onClick={e => e.stopPropagation()}>
+
+        <i className={`fas ${icon}`} style={{ fontSize: '40px', color: iconColor, marginBottom: '15px' }}></i>
+
+        <h3 style={{ margin: '0 0 8px 0', color: '#333', fontSize: '18px' }}>{title}</h3>
+
+        <p style={{ margin: 0, color: '#666', textAlign: 'center', lineHeight: '1.5', fontSize: '14px' }}>
+          {message}
+        </p>
+
+      </div>
+
+      {/* Thêm keyframe animation inline */}
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// --- 2. COMPONENT SIDEBAR CHÍNH ---
+function Sidebar({
+  incidents, onOpenModal, onOpenFilterModal, onIncidentAdded,
+  user, isAdmin, handleLogin, currentFilter, searchQuery, onSearchChange, onCardClick, onEditIncident
+}) {
   const [isScanning, setIsScanning] = useState(false);
   const [lastScanTime, setLastScanTime] = useState(null);
+
+  // State quản lý thông báo (null = không hiện)
+  const [notification, setNotification] = useState(null);
+
   const scanIntervalRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const hasInitialScanRun = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
+    };
+  }, []);
 
   const handleLogout = () => {
     auth.signOut();
   };
 
-  // Hàm quét tin (Dùng chung cho cả Tự động và Thủ công)
+  // Hàm hiển thị thông báo thay cho alert
+  const showNotify = (message, type = 'info') => {
+      if (isMountedRef.current) {
+          setNotification({ message, type });
+      }
+  };
+
+  // --- HÀM QUÉT TIN (ĐÃ SỬA DÙNG NOTIFICATION) ---
   const performScan = async (isAuto = false) => {
     if (isScanning) return;
-
-    // Nếu bạn đã thêm isMountedRef như bài trước thì dùng dòng này, không thì cứ dùng setIsScanning(true)
-    setIsScanning(true);
+    if (isMountedRef.current) setIsScanning(true);
 
     try {
       const result = await scanNewsWithAI();
 
-      // --- SỬA ĐOẠN NÀY ---
+      if (!isMountedRef.current) return;
+
       if (!result) {
-         // Trường hợp 1: AI chạy thành công nhưng không tìm thấy tin nào mới
-         console.log("Hệ thống: Quét xong nhưng không có tin mới."); // Log nhẹ nhàng hơn
-
+         console.log("Hệ thống: Quét xong nhưng không có tin mới.");
          if (!isAuto) {
-             // Hiển thị thông báo thân thiện như bạn yêu cầu
-             alert("Hiện chưa có tin tức mới nào để cập nhật.");
+             // THAY ALERT BẰNG NOTIFY
+             showNotify("Hiện chưa có tin tức mới nào cần cập nhật.", "warning");
          }
-
-         // Vẫn tính là đã quét xong (cập nhật thời gian)
          setLastScanTime(new Date());
-         // Kết thúc, không làm gì thêm
          setIsScanning(false);
          return;
       }
-      // --------------------
 
-      // Trường hợp 2: Có tin mới
+      // Có tin mới
       if (!isAuto) {
-        // Nếu result là 1 tin (object) hay nhiều tin (array), hiển thị phù hợp
         const message = result.title
-            ? `QUÉT THÀNH CÔNG!\nĐã thêm tin: "${result.title}"`
-            : `QUÉT THÀNH CÔNG!\nĐã cập nhật dữ liệu mới.`;
-        alert(message);
+            ? `Đã tìm thấy và thêm tin mới:\n"${result.title}"`
+            : `Hệ thống đã cập nhật dữ liệu tin tức mới thành công.`;
+
+        // THAY ALERT BẰNG NOTIFY
+        showNotify(message, "success");
       }
 
       if (onIncidentAdded) onIncidentAdded();
       setLastScanTime(new Date());
 
     } catch (error) {
-      // Trường hợp 3: Lỗi Kỹ thuật thực sự (Mất mạng, Sai API Key...)
-      console.error("Lỗi kỹ thuật:", error);
-      if (!isAuto) {
-          alert(`Lỗi hệ thống: ${error.message || "Kiểm tra lại kết nối hoặc API Key."}`);
+      console.error("Lỗi quét:", error);
+      if (!isAuto && isMountedRef.current) {
+          // THAY ALERT BẰNG NOTIFY
+          showNotify(`Lỗi hệ thống: ${error.message || "Vui lòng kiểm tra kết nối."}`, "error");
       }
     } finally {
-      setIsScanning(false);
+      if (isMountedRef.current) setIsScanning(false);
     }
   };
-  // --- LOGIC TỰ ĐỘNG HÓA ---
+
   useEffect(() => {
     if (user && isAdmin) {
-      // 1. Quét ngay khi Admin vừa vào
-      performScan(true);
-
-      // 2. Cài đặt đồng hồ lặp lại
+      if (!hasInitialScanRun.current) {
+         performScan(true);
+         hasInitialScanRun.current = true;
+      }
+      if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
       scanIntervalRef.current = setInterval(() => {
         performScan(true);
       }, AUTO_SCAN_INTERVAL);
-
-      return () => {
-        if (scanIntervalRef.current) {
-          clearInterval(scanIntervalRef.current);
-        }
-      };
     }
+    return () => {
+      if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
+    };
   }, [user, isAdmin]);
-
 
   return (
     <div className="sidebar">
+      {/* 3. HIỂN THỊ COMPONENT THÔNG BÁO NẾU CÓ STATE */}
+      {notification && (
+          <NotificationModal
+              message={notification.message}
+              type={notification.type}
+              onClose={() => setNotification(null)}
+          />
+      )}
 
       <div className="admin-panel">
         {user && isAdmin ? (
@@ -109,7 +187,6 @@ function Sidebar({
               <button onClick={handleLogout} className="logout-btn">Đăng xuất</button>
             </div>
 
-            {/* NÚT QUÉT THỦ CÔNG (Cho phép Admin bấm bất cứ lúc nào) */}
             <button
               className="ai-scan-btn"
               onClick={() => performScan(false)}
@@ -121,9 +198,8 @@ function Sidebar({
 
             <div style={{fontSize: '11px', color: '#6b7280', marginTop: '5px', textAlign: 'center'}}>
               <i className="fas fa-clock"></i> Tự động quét mỗi 60 phút. <br/>
-              Lần cuối: {lastScanTime ? lastScanTime.toLocaleTimeString() : 'Chưa quét'}
+              Lần cuối: {lastScanTime ? lastScanTime.toLocaleTimeString('vi-VN') : 'Chưa quét'}
             </div>
-
           </div>
         ) : user ? (
           <div className="admin-info">
@@ -161,6 +237,7 @@ function Sidebar({
         currentFilter={currentFilter}
         onCardClick={onCardClick}
         user={user}
+        onEditIncident={onEditIncident}
       />
 
       <div className="sidebar-footer">
