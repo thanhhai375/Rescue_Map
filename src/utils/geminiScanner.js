@@ -1,15 +1,15 @@
 import { addIncident, serverTimestamp, checkLinkExists } from "../firebaseConfig";
+// Import dữ liệu vùng từ file gốc của bạn (Đi ra 1 cấp thư mục)
 import { REGIONS } from "../regionData";
 
-const API_KEY = "AIzaSyBMzuxV7fzGK6OvIpMzX2OiTEuwfYaKg58"; // Key của bạn
+// ⚠️ API KEY CỦA BẠN (Dùng key mới nếu key cũ bị lỗi)
+const API_KEY = "AIzaSyBYM4E_PwC11ikNSk8UPtmkNoAjaherVvg";
 
-// GIẢM SỐ LƯỢNG RSS ĐỂ TRÁNH LỖI 500 (SERVER QUÁ TẢI)
 const RSS_FEEDS = [
   "https://vnexpress.net/rss/thoi-su.rss",
   "https://tuoitre.vn/rss/thoi-su.rss",
   "https://dantri.com.vn/rss/xa-hoi.rss",
-  // Tạm tắt bớt các nguồn khác để test ổn định trước
-  // "https://thanhnien.vn/rss/thoi-su.rss",
+  "https://thanhnien.vn/rss/thoi-su.rss",
 ];
 
 const VALID_KEYWORDS = [
@@ -24,6 +24,15 @@ const IGNORE_KEYWORDS = [
   'khai mạc', 'hội nghị', 'bắt giữ', 'tuyên án', 'tham nhũng', 'xổ số', 'kỷ luật'
 ];
 
+// --- CÁC HÀM TIỆN ÍCH (UTILS) ---
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Hàm xóa dấu tiếng Việt để so sánh tên tỉnh (Ví dụ: "Bac Giang" == "Bắc Giang")
+const removeAccents = (str) => {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
+};
+
 const cleanJsonString = (str) => {
   if (!str) return "{}";
   const firstBrace = str.indexOf('{');
@@ -35,198 +44,209 @@ const cleanJsonString = (str) => {
   return "{}";
 };
 
-// 🔥 [MỚI] HÀM TRÍCH XUẤT ẢNH THẬT TỪ RSS 🔥
-// Hàm này sẽ tìm thẻ <img src="..."> trong mô tả bài báo.
-// Nếu tìm thấy -> Trả về link ảnh.
-// Nếu KHÔNG tìm thấy -> Trả về null (Không dùng ảnh mẫu nữa).
-function extractImageFromRSS(description) {
-  if (!description) return null;
-  // Regex tìm thuộc tính src bên trong thẻ img
+function extractImageFromRSS(item) {
+  if (item.enclosure && item.enclosure.link) return item.enclosure.link;
+  if (item.thumbnail && item.thumbnail.startsWith('http')) return item.thumbnail;
+
+  const description = item.description || "";
   const imgRegex = /<img[^>]+src=["']([^"']+)["']/i;
   const match = description.match(imgRegex);
 
-  // Nếu tìm thấy và link bắt đầu bằng http (để tránh ảnh rác)
   if (match && match[1] && match[1].startsWith('http')) {
-    return match[1]; // Trả về link ảnh thật
+    const imgUrl = match[1];
+    const junk = ['icon', 'logo', 'share', 'button', 'pixel', 'avatar', 'banner', 'ads'];
+    if (junk.some(kw => imgUrl.toLowerCase().includes(kw))) return null;
+    return imgUrl;
   }
-  return null; // Không có ảnh thật thì trả về null
+  return null;
 }
 
-const isRecent = (pubDateStr) => {
-  if (!pubDateStr) return true;
-  const pubDate = new Date(pubDateStr);
-  const now = new Date();
-  const diffHours = (now - pubDate) / (1000 * 60 * 60);
-  return diffHours <= 24;
+// Từ điển tọa độ đặc biệt (Không có trong regionData)
+const SPECIAL_LOCATIONS = {
+    "biển đông": { lat: 16.5, lng: 112.0 },
+    "hoàng sa": { lat: 16.4, lng: 111.6 },
+    "trường sa": { lat: 8.6, lng: 111.9 },
+    "vịnh bắc bộ": { lat: 20.0, lng: 107.5 },
 };
+
+// --- LOGIC GỌI API ---
 
 async function fetchRSS(url) {
   try {
     const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`;
     const response = await fetch(api);
-
-    // Xử lý khi RSS server lỗi (500, 404...)
-    if (!response.ok) {
-        console.warn(`⚠️ Bỏ qua nguồn lỗi: ${url}`);
-        return [];
-    }
-
+    if (!response.ok) return [];
     const data = await response.json();
-
     if (data.status === 'ok' && data.items) {
       return data.items.filter(item => {
-        // Đảm bảo title và description luôn là chuỗi, không được null
-        const title = item.title || "";
-        const desc = item.description || "";
-        const text = (title + " " + desc).toLowerCase();
+        const title = (item.title || "").toLowerCase();
+        const desc = (item.description || "").toLowerCase();
+        const text = title + " " + desc;
+
+        // Lọc ngày (24h)
+        const pubDate = new Date(item.pubDate);
+        const isNew = (new Date() - pubDate) / (3600000) <= 24;
 
         const hasKeyword = VALID_KEYWORDS.some(kw => text.includes(kw));
         const hasIgnore = IGNORE_KEYWORDS.some(kw => text.includes(kw));
-        const isNew = isRecent(item.pubDate);
 
         return hasKeyword && !hasIgnore && isNew;
       });
     }
     return [];
   } catch (error) {
-    console.error(`Lỗi RSS ${url}:`, error);
+    console.error(`Lỗi RSS:`, error);
     return [];
   }
 }
 
-async function getCoordinatesFromAddress(address) {
-  if (!address || address === "Việt Nam") return null;
+// Hàm tìm tọa độ: Ưu tiên Special -> Nominatim -> REGIONS (Local)
+async function getCoordinates(query) {
+  if (!query) return null;
+  const cleanQuery = query.toLowerCase().trim();
+
+  // 1. Check Từ điển đặc biệt (Biển Đông...)
+  if (SPECIAL_LOCATIONS[cleanQuery]) return SPECIAL_LOCATIONS[cleanQuery];
+
+  // 2. Gọi API OpenStreetMap (Nominatim)
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=vn&limit=1`;
-    const response = await fetch(url, { headers: { 'User-Agent': 'RescueMapApp/1.0' } });
-    const data = await response.json();
-    if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-  } catch (error) { console.warn("Lỗi Geocoding:", error); }
+    await delay(1000); // Delay tránh bị chặn
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=vn&limit=1`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'RescueMapApp/1.0' } });
+    const data = await res.json();
+    if (data && data.length > 0) {
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+  } catch (e) { console.warn("Lỗi API Map, chuyển sang tìm Local...",e); }
+
+  // 3. FALLBACK: Tìm trong file regionData.js (So sánh không dấu)
+  const normalizedQuery = removeAccents(cleanQuery);
+  const region = REGIONS.find(r => {
+      const regionNameNorm = removeAccents(r.name);
+      return normalizedQuery.includes(regionNameNorm) || regionNameNorm.includes(normalizedQuery);
+  });
+
+  if (region) {
+      console.log(`📍 Dùng tọa độ tỉnh thành: ${region.name}`);
+      return { lat: region.center[0], lng: region.center[1] };
+  }
+
   return null;
 }
 
+// Hàm gọi AI (Đa Model: 2.0 -> 1.5)
 async function callGeminiDirectly(promptText) {
-  const MODEL_CANDIDATES = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+  const MODELS = [ "gemini-2.5-flash","gemini-3.0-flash","gemini-3.0-pro","gemini-2.0-flash","gemini-1.5-flash", "gemini-1.5-pro"];
 
-  for (const model of MODEL_CANDIDATES) {
-    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${API_KEY}`;
-    const payload = { contents: [{ parts: [{ text: promptText }] }] };
+  for (const model of MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+      const payload = {
+        contents: [{ parts: [{ text: promptText }] }],
+        safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ]
+      };
 
-    try {
-      const response = await fetch(url, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
-      });
-      if (!response.ok) continue;
-      const data = await response.json();
-      return data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-    } catch (error) {console.warn(error) ; continue; }
+      try {
+        const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        if (!response.ok) continue;
+        const data = await response.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text;
+      } catch (e) { console.warn(e); }
   }
   return null;
 }
 
-// === LOGIC CHÍNH ===
+// === MAIN FUNCTION ===
 export const scanNewsWithAI = async () => {
-  console.log("🚀 [System] Bắt đầu quét đa luồng...");
+  console.log("🚀 [System] Bắt đầu quét...");
   let countAdded = 0;
 
   try {
+    // 1. Lấy RSS song song
     let candidates = [];
-    for (const feed of RSS_FEEDS) {
-      const articles = await fetchRSS(feed);
-      candidates = [...candidates, ...articles];
-    }
+    const feedResults = await Promise.all(RSS_FEEDS.map(feed => fetchRSS(feed)));
+    feedResults.forEach(items => candidates = [...candidates, ...items]);
 
-    if (candidates.length === 0) {
-      console.log("📭 Không có tin mới hoặc lỗi kết nối RSS.");
-      return null;
-    }
+    if (candidates.length === 0) return null;
 
-    console.log(`🔎 Tìm thấy ${candidates.length} tin tiềm năng. Đang lọc...`);
-
-    let articlesToProcess = [];
+    // 2. Lọc tin trùng
+    let articles = [];
     for (const item of candidates) {
-        if (articlesToProcess.length >= 3) break; // GIẢM XUỐNG 3 TIN ĐỂ ỔN ĐỊNH
-
-        // Kiểm tra an toàn item.link
-        if (!item.link) continue;
-
-        const exists = await checkLinkExists(item.link);
-        if (!exists) {
-            articlesToProcess.push(item);
+        if (articles.length >= 10) break; // Max 10 tin
+        if (item.link && !(await checkLinkExists(item.link))) {
+            articles.push(item);
         }
     }
 
-    if (articlesToProcess.length === 0) {
-        console.log("✅ Tất cả tin đều đã có trên hệ thống.");
+    if (articles.length === 0) {
+        console.log("✅ Không có tin mới.");
         return null;
     }
 
-    console.log(`⚡ Đang phân tích ${articlesToProcess.length} tin mới...`);
+    console.log(`⚡ Phân tích ${articles.length} tin mới...`);
 
-    for (const article of articlesToProcess) {
+    // 3. Phân tích từng tin
+    for (const article of articles) {
+         await delay(2500); // Delay tránh lỗi 429
+
          const prompt = `
-          Phân tích tin sau và trả về JSON thuần túy.
-          Tin: "${article.title} - ${article.description}"
-          Format JSON:
-          {
-            "is_relevant": true/false (true nếu là thiên tai/lũ/bão/cứu nạn/cháy/tai nạn),
-            "title": "Tiêu đề ngắn gọn (dưới 10 từ)",
-            "location_query": "Địa danh hành chính cụ thể nhất (Xã/Huyện/Tỉnh)",
-            "type": "rescue" (cần cứu) hoặc "warning" (cảnh báo) hoặc "news" (tin tức)
-          }
+          Phân tích tin: "${article.title} - ${article.description}"
+
+          Yêu cầu Vị Trí:
+          - Nếu là "Biển Đông", "Hoàng Sa", "Trường Sa" -> Trả về chính xác cụm từ đó.
+          - Nếu là đất liền -> Trả về "Xã/Huyện/Tỉnh" cụ thể nhất.
+          - Phân biệt "biển động" (thời tiết) với "Biển Đông" (địa danh).
+
+          Format JSON string:
+          { "is_relevant": boolean, "title": string, "location_query": string, "type": "rescue"|"warning"|"news" }
         `;
 
         const aiText = await callGeminiDirectly(prompt);
         if (!aiText) continue;
 
         let finalData;
-        try { finalData = JSON.parse(cleanJsonString(aiText)); } catch (e) { console.warn(e) ; continue; }
+        try { finalData = JSON.parse(cleanJsonString(aiText)); } catch (e) {console.warn(e); continue; }
 
         if (!finalData.is_relevant) continue;
 
-        // Nếu AI trả về location_query là null, gán chuỗi rỗng để không bị lỗi
+        // 4. Tìm tọa độ (Logic đã nâng cấp)
         const locationQuery = finalData.location_query || "";
+        let lat = 10.7769, lng = 106.7009; // Default HCM
 
-        let lat = 10.7769, lng = 106.7009;
-        const geoData = await getCoordinatesFromAddress(locationQuery);
-
-        if (geoData) {
-            lat = geoData.lat; lng = geoData.lng;
+        const coords = await getCoordinates(locationQuery);
+        if (coords) {
+            lat = coords.lat;
+            lng = coords.lng;
         } else {
-             // Tìm trong REGIONS (có kiểm tra null)
-             const region = REGIONS.find(r =>
-                locationQuery.toLowerCase().includes(r.name.toLowerCase())
-             );
-             if (region) { lat = region.center[0]; lng = region.center[1]; }
+            // Nếu không tìm thấy tọa độ nào cả, fallback về "Toàn Việt Nam"
+            console.warn(`⚠️ Không tìm thấy vị trí: ${locationQuery}, gán về tâm VN.`);
+            lat = 16.0544; lng = 108.2022;
         }
 
-        // 🔥 [THAY ĐỔI QUAN TRỌNG Ở ĐÂY] 🔥
-        // Sử dụng hàm mới để lấy ảnh thật.
-        const realImage = extractImageFromRSS(article.description);
+        const realImage = extractImageFromRSS(article);
 
-        const incidentData = {
-          type: finalData.type || "news", // Nếu AI quên type thì mặc định là news
+        await addIncident({
+          type: finalData.type || "news",
           title: finalData.title || article.title,
-          description: (article.description || "").replace(/<[^>]*>?/gm, ''),
+          description: (article.description || "").replace(/<[^>]*>?/gm, '').substring(0, 200) + "...",
           sourceLink: article.link,
           location: locationQuery || "Chưa xác định",
           lat, lng,
-          // Gán ảnh thật vào đây. Nếu không có thì nó sẽ là null.
           image: realImage,
           status: 'pending',
           time: serverTimestamp()
-        };
+        });
 
-        await addIncident(incidentData);
         countAdded++;
-        console.log(`💾 Đã lưu: ${finalData.title}`);
+        console.log(`💾 ĐÃ LƯU: ${finalData.title} (${locationQuery})`);
     }
 
-    if (countAdded > 0) {
-        return { title: `Đã thêm ${countAdded} tin mới` };
-    } else {
-        return { title: "Hoàn tất quét (không có tin hợp lệ)" };
-    }
+    return countAdded > 0 ? { title: `Đã thêm ${countAdded} tin mới` } : { title: "Hoàn tất." };
 
   } catch (error) {
     console.error("❌ Lỗi Scan:", error);

@@ -4,16 +4,29 @@ import { updateIncident, deleteIncident } from '../firebaseConfig';
 function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardClick, onEditIncident }) {
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // --- SỬA LỖI 1: XỬ LÝ HIỂN THỊ LOẠI TIN ---
+  // --- XỬ LÝ MÀU SẮC THEO LOẠI TIN ---
   let typeName = '';
+  let typeColor = '#555'; // Màu mặc định
+
   switch(incident.type) {
-    case 'rescue': typeName = 'Cần cứu hộ'; break;
-    case 'help': typeName = 'Đội cứu hộ'; break;
-    case 'warning': typeName = 'Cảnh báo'; break;
-    case 'news': typeName = 'Tin tức'; break; // Thêm dòng này
-    default: typeName = 'Tin tức'; // Đổi mặc định thành Tin tức thay vì "Không rõ"
+    case 'rescue':
+        typeName = 'Cần cứu hộ';
+        typeColor = '#d9534f'; // Đỏ
+        break;
+    case 'help':
+        typeName = 'Đội cứu hộ';
+        typeColor = '#5bc0de'; // Xanh
+        break;
+    case 'warning':
+        typeName = 'Cảnh báo';
+        typeColor = '#f0ad4e'; // Cam
+        break;
+    default:
+        typeName = 'Tin tức';
+        typeColor = '#8b5cf6'; // Tím (Map với CSS mới)
   }
 
+  // --- XỬ LÝ TRẠNG THÁI ---
   let statusText = 'Mới';
   let statusClass = 'new';
   const currentStatus = incident.status || 'new';
@@ -34,12 +47,8 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
   const handleStatusUpdate = async (newStatus, event) => {
     event.stopPropagation();
     if (!isAdmin) {
-      alert("Bạn phải đăng nhập với tư cách Quản lý để thực hiện việc này.");
-      try {
-        await handleLogin();
-      } catch (error) {
-        console.error("Lỗi đăng nhập:", error);
-      }
+      alert("Bạn phải đăng nhập với tư cách Quản lý.");
+      try { await handleLogin(); } catch (error) {  alert("",error);}
       return;
     }
     setIsUpdating(true);
@@ -47,8 +56,8 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
       await updateIncident(incident.id, { status: newStatus });
       onStatusUpdate();
     } catch (error) {
-      console.error("Lỗi cập nhật trạng thái:", error);
-      alert("Cập nhật thất bại, vui lòng thử lại.");
+      console.error(error);
+      alert("Lỗi cập nhật.");
     } finally {
         setIsUpdating(false);
     }
@@ -61,145 +70,121 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
       await handleLogin();
       return;
     }
-    if (window.confirm("Bạn có chắc chắn muốn xóa vĩnh viễn phản ánh này?")) {
+    if (window.confirm("Bạn có chắc chắn muốn xóa vĩnh viễn?")) {
       setIsUpdating(true);
       try {
         await deleteIncident(incident.id);
         onStatusUpdate();
       } catch (error) {
-        console.error("Lỗi xóa bài:", error);
-        alert("Xóa thất bại, vui lòng thử lại.");
+        alert("Lỗi xóa bài.",error);
       } finally {
         setIsUpdating(false);
-    }
+      }
     }
   };
 
   const handleEditClick = (event) => {
       event.stopPropagation();
-      if (onEditIncident) {
-          onEditIncident(incident);
-      }
+      if (onEditIncident) onEditIncident(incident);
   };
 
-  // --- SỬA LỖI 3: LINK GOOGLE MAPS ---
-  // Code cũ: 0{incident.lat} (sai cú pháp) -> Code mới: ${incident.lat}
   const googleMapsLink = incident.lat && incident.lng
-    ? `http://googleusercontent.com/maps.google.com/?q=${incident.lat},${incident.lng}`
+    ? `http://googleusercontent.com/maps.google.com/maps?q=${incident.lat},${incident.lng}`
     : null;
 
   return (
     <div
       className="incident-card"
       data-type={incident.type}
-      onClick={() => onCardClick(incident.lat, incident.lng)}
+      // 🔥 THAY ĐỔI Ở ĐÂY: Truyền cả object incident thay vì chỉ lat, lng
+      onClick={() => onCardClick(incident)}
+      style={{ borderLeft: `5px solid ${typeColor}` }}
     >
       <div className="incident-header">
         <div className="incident-header-left">
-          <span className="incident-type">{typeName}</span>
+          <span className="incident-type" style={{ color: typeColor, fontWeight: 'bold' }}>{typeName}</span>
           <span className={`status-badge status-${statusClass}`}>{statusText}</span>
         </div>
-        <span className="incident-time">{time}</span>
-      </div>
-      <div className="incident-title">{incident.title}</div>
-      <div className="incident-location">
-        <i className="fas fa-map-marker-alt"></i>
-        <span>{incident.location}</span>
+        <span className="incident-time" style={{ fontSize: '12px', color: '#999' }}>{time}</span>
       </div>
 
-      {/* --- SỬA LỖI 2: XỬ LÝ ẢNH --- */}
-      {/* Chỉ hiện nếu có link ảnh và tự động ẩn (display: none) nếu ảnh lỗi */}
-      {incident.image && incident.image !== "" && (
-        <img
-            src={incident.image}
-            className="incident-image"
-            alt={incident.title}
-            onError={(e) => e.target.style.display = 'none'}
-        />
+      <div className="incident-title" style={{ fontWeight: '600', margin: '8px 0' }}>{incident.title}</div>
+
+      <div className="incident-location" style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>
+        <i className="fas fa-map-marker-alt" style={{ marginRight: '5px' }}></i>
+        <span>{incident.location || "Chưa xác định"}</span>
+      </div>
+
+      {incident.image && incident.image.startsWith('http') && (
+        <div className="incident-image-wrapper" style={{ width: '100%', borderRadius: '8px', overflow: 'hidden', marginTop: '10px' }}>
+            <img
+                src={incident.image}
+                alt="Ảnh hiện trường"
+                style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }}
+                onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.style.display = 'none';
+                }}
+            />
+        </div>
       )}
 
-      <div className="incident-links">
+      <div className="incident-links" style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #eee' }}>
         <div>
           {incident.sourceLink ? (
-            <a href={incident.sourceLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-              Nguồn Link
+            <a href={incident.sourceLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ marginRight: '10px', color: '#007bff' }}>
+               <i className="fas fa-external-link-alt"></i> Nguồn
             </a>
           ) : (
-            <span style={{color: '#aaa', fontSize: '13px'}}>Không có nguồn</span>
+            <span style={{ color: '#aaa', fontSize: '13px' }}>Không nguồn</span>
           )}
 
-          {googleMapsLink ? (
-            <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-              Google Maps Link
+          {googleMapsLink && (
+            <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: '#28a745' }}>
+               <i className="fas fa-map"></i> Chỉ đường
             </a>
-          ) : (
-            <span style={{color: '#aaa', fontSize: '13px'}}>Chưa có tọa độ</span>
           )}
         </div>
 
-        {/* Nút Edit chỉ hiện cho Admin */}
-        {isAdmin && (
-            <button className="bookmark-btn" title="Chỉnh sửa" onClick={handleEditClick} style={{marginRight: '8px', color: '#3b82f6'}}>
-                <i className="fas fa-edit"></i>
-            </button>
-        )}
-
-        <button className="bookmark-btn" onClick={(e) => e.stopPropagation()}>
-          <i className="far fa-bookmark"></i>
-        </button>
+        <div style={{ display: 'flex', gap: '5px' }}>
+             {isAdmin && (
+                <button className="bookmark-btn" title="Sửa" onClick={handleEditClick} style={{ color: '#333' }}>
+                    <i className="fas fa-edit"></i>
+                </button>
+             )}
+        </div>
       </div>
 
       {isAdmin && (
-        <div className="incident-actions">
+        <div className="incident-actions" style={{ marginTop: '10px', display: 'flex', gap: '5px' }}>
           {currentStatus === 'pending' && (
             <>
-              <button
-                className="action-btn btn-approve"
-                onClick={(e) => handleStatusUpdate('new', e)}
-                disabled={isUpdating}
-              >
-                <i className="fas fa-check"></i> {isUpdating ? "..." : "Duyệt"}
+              <button className="action-btn btn-approve" onClick={(e) => handleStatusUpdate('new', e)} disabled={isUpdating} title="Duyệt bài">
+                <i className="fas fa-check"></i>
               </button>
-              <button
-                className="action-btn btn-delete"
-                onClick={handleDelete}
-                disabled={isUpdating}
-              >
-                <i className="fas fa-trash"></i> {isUpdating ? "..." : "Xóa"}
+              <button className="action-btn btn-delete" onClick={handleDelete} disabled={isUpdating} title="Xóa bài">
+                <i className="fas fa-trash"></i>
               </button>
             </>
           )}
 
           {currentStatus === 'new' && (
-            <button
-              className="action-btn btn-process"
-              onClick={(e) => handleStatusUpdate('processing', e)}
-              disabled={isUpdating}
-            >
-              <i className="fas fa-cogs"></i> {isUpdating ? "..." : "Nhận xử lý"}
+            <button className="action-btn btn-process" onClick={(e) => handleStatusUpdate('processing', e)} disabled={isUpdating}>
+              <i className="fas fa-running"></i> Xử lý
             </button>
           )}
 
           {currentStatus === 'processing' && (
-            <button
-              className="action-btn btn-resolve"
-              onClick={(e) => handleStatusUpdate('resolved', e)}
-              disabled={isUpdating}
-            >
-              <i className="fas fa-check-circle"></i> {isUpdating ? "..." : "Đã cứu hộ"}
+            <button className="action-btn btn-resolve" onClick={(e) => handleStatusUpdate('resolved', e)} disabled={isUpdating}>
+              <i className="fas fa-flag-checkered"></i> Xong
             </button>
           )}
 
           {currentStatus !== 'pending' && (
-            <button
-              className="action-btn btn-delete"
-              onClick={handleDelete}
-              disabled={isUpdating}
-            >
-              <i className="fas fa-trash"></i> {isUpdating ? "..." : "Xóa"}
-            </button>
+             <button className="action-btn btn-delete" onClick={handleDelete} disabled={isUpdating} style={{ marginLeft: 'auto', background: 'none', color: 'red', border: 'none' }}>
+               <i className="fas fa-trash"></i>
+             </button>
           )}
-
         </div>
       )}
     </div>

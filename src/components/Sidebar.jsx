@@ -31,33 +31,53 @@ function Sidebar({
   // Hàm quét tin (Dùng chung cho cả Tự động và Thủ công)
   const performScan = async (isAuto = false) => {
     if (isScanning) return;
+
+    // Nếu bạn đã thêm isMountedRef như bài trước thì dùng dòng này, không thì cứ dùng setIsScanning(true)
     setIsScanning(true);
 
     try {
       const result = await scanNewsWithAI();
 
-      // --- SỬA ĐOẠN NÀY ĐỂ CHẶN LỖI NULL ---
+      // --- SỬA ĐOẠN NÀY ---
       if (!result) {
-         console.warn("Quét không thành công (AI trả về null).");
-         if (!isAuto) alert("Lỗi: Không lấy được tin hoặc API Key sai.");
+         // Trường hợp 1: AI chạy thành công nhưng không tìm thấy tin nào mới
+         console.log("Hệ thống: Quét xong nhưng không có tin mới."); // Log nhẹ nhàng hơn
+
+         if (!isAuto) {
+             // Hiển thị thông báo thân thiện như bạn yêu cầu
+             alert("Hiện chưa có tin tức mới nào để cập nhật.");
+         }
+
+         // Vẫn tính là đã quét xong (cập nhật thời gian)
+         setLastScanTime(new Date());
+         // Kết thúc, không làm gì thêm
          setIsScanning(false);
          return;
       }
-      // -------------------------------------
+      // --------------------
 
+      // Trường hợp 2: Có tin mới
       if (!isAuto) {
-        alert(`QUÉT THÀNH CÔNG!\nTin: "${result.title}"`);
+        // Nếu result là 1 tin (object) hay nhiều tin (array), hiển thị phù hợp
+        const message = result.title
+            ? `QUÉT THÀNH CÔNG!\nĐã thêm tin: "${result.title}"`
+            : `QUÉT THÀNH CÔNG!\nĐã cập nhật dữ liệu mới.`;
+        alert(message);
       }
-      onIncidentAdded();
+
+      if (onIncidentAdded) onIncidentAdded();
       setLastScanTime(new Date());
 
     } catch (error) {
-      console.log("Lỗi quét:", error);
+      // Trường hợp 3: Lỗi Kỹ thuật thực sự (Mất mạng, Sai API Key...)
+      console.error("Lỗi kỹ thuật:", error);
+      if (!isAuto) {
+          alert(`Lỗi hệ thống: ${error.message || "Kiểm tra lại kết nối hoặc API Key."}`);
+      }
     } finally {
       setIsScanning(false);
     }
   };
-
   // --- LOGIC TỰ ĐỘNG HÓA ---
   useEffect(() => {
     if (user && isAdmin) {
