@@ -3,9 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import App from './App.jsx'
-import Homepage from './components/Homepage.jsx';
+import Homepage from './pages/Homepage.jsx';
 import MapPage from './pages/MapPage.jsx';
-
 import './index.css'
 import 'leaflet/dist/leaflet.css'
 

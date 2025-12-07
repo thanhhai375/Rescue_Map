@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import IncidentList from './IncidentList';
-import { auth } from '../firebaseConfig';
-import { scanNewsWithAI } from '../utils/geminiScanner';
+import { auth } from '../../config/firebaseConfig';
+import { scanNewsWithAI } from '../../services/geminiScanner';
+import IncidentList from '../incident/IncidentList';
 
 // CẤU HÌNH: Tự động quét mỗi 60 phút
 const AUTO_SCAN_INTERVAL = 60 * 60 * 1000;

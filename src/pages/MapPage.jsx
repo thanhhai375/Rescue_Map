@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
-import MapWrapper from '../components/MapWrapper';
+import Sidebar from '../components/layout/Sidebar';
+import MapWrapper from '../components/map/MapWrapper';
 
 // --- CHÈN COMPONENT DETAIL MODAL VÀO ĐÂY (Hoặc import từ file riêng) ---
 // (Dán đoạn code DetailModal ở Bước 1 vào đây)

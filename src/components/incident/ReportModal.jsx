@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { addIncident, updateIncident, serverTimestamp } from '../firebaseConfig';
+import { addIncident, updateIncident, serverTimestamp } from '../../config/firebaseConfig';
 
 // Dữ liệu form ban đầu (trống)
 const initialFormData = {

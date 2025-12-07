@@ -1,18 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import Header from './components/Header';
-import ReportModal from './components/ReportModal';
-import FilterModal from './components/FilterModal';
-import {
-  getIncidents,
-  getAllIncidentsForAdmin,
-  auth,
-  onAuthStateChanged,
-  handleGoogleLogin,
-  deleteOldIncidents
-} from './firebaseConfig';
-import { REGIONS } from './regionData';
-import { getDistanceFromLatLonInKm, distanceFilterToKm } from './utils/distance';
+import { auth, onAuthStateChanged, getIncidents, handleGoogleLogin, getAllIncidentsForAdmin, deleteOldIncidents } from './config/firebaseConfig'; // Config
+import { REGIONS } from './constants/regionData'; // Constants
+import Header from './components/layout/Header'; // Layout
+import ReportModal from './components/incident/ReportModal'; // Incident
+import FilterModal from './components/map/FilterModal'; // Map
+import { distanceFilterToKm, getDistanceFromLatLonInKm } from './utils/distance';
 
 const ADMIN_EMAILS = [
   "thanhhai30072005@gmail.com",

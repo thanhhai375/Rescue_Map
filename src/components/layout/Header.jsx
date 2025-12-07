@@ -1,7 +1,7 @@
 import React from 'react';
-import { REGIONS } from '../regionData';
 import { Link, NavLink } from 'react-router-dom';
-import { auth } from '../firebaseConfig';
+import { REGIONS } from '../../constants/regionData';
+import { auth } from '../../config/firebaseConfig';
 
 // ĐÃ FIX: Xóa 'isAdmin' ra khỏi props vì chưa dùng tới
 function Header({ onRegionChange, currentRegionKey, user, onLogin, showAuth = false }) {

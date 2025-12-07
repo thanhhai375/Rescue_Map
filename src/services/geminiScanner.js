@@ -1,10 +1,7 @@
-import { addIncident, serverTimestamp, checkLinkExists } from "../firebaseConfig";
-// Import dữ liệu vùng từ file gốc của bạn (Đi ra 1 cấp thư mục)
-import { REGIONS } from "../regionData";
+import { addIncident, serverTimestamp, checkLinkExists } from "../config/firebaseConfig";
+import { REGIONS } from "../constants/regionData";
 
-// ⚠️ API KEY CỦA BẠN (Dùng key mới nếu key cũ bị lỗi)
-const API_KEY = "AIzaSyBYM4E_PwC11ikNSk8UPtmkNoAjaherVvg";
-
+const API_KEY = "AIzaSyDp3LDHbPbOwAvMcm0asYmEh4I6MXdMEuM";
 const RSS_FEEDS = [
   "https://vnexpress.net/rss/thoi-su.rss",
   "https://tuoitre.vn/rss/thoi-su.rss",
@@ -136,7 +133,7 @@ async function getCoordinates(query) {
 
 // Hàm gọi AI (Đa Model: 2.0 -> 1.5)
 async function callGeminiDirectly(promptText) {
-  const MODELS = [ "gemini-2.5-flash","gemini-3.0-flash","gemini-3.0-pro","gemini-2.0-flash","gemini-1.5-flash", "gemini-1.5-pro"];
+  const MODELS = [ "gemini-2.5-flash","gemini-3.0","gemini-3.0-pro","gemini-2.0-flash","gemini-1.5-flash", "gemini-1.5-pro"];
 
   for (const model of MODELS) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;

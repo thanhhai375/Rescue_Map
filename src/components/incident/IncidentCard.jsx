@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { updateIncident, deleteIncident } from '../firebaseConfig';
+import { updateIncident, deleteIncident } from '../../config/firebaseConfig';
 
 function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardClick, onEditIncident }) {
   const [isUpdating, setIsUpdating] = useState(false);

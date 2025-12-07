@@ -34,7 +34,6 @@ const checkLinkExists = async (link) => {
   const snapshot = await getDocs(q);
   return !snapshot.empty;
 };
-
 // --- 2. XÓA TIN CŨ HƠN 48 GIỜ ---
 const deleteOldIncidents = async () => {
   try {
