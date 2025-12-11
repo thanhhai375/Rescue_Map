@@ -3,7 +3,6 @@ import { Link, NavLink } from 'react-router-dom';
 import { REGIONS } from '../../constants/regionData';
 import { auth } from '../../config/firebaseConfig';
 
-// ĐÃ FIX: Xóa 'isAdmin' ra khỏi props vì chưa dùng tới
 function Header({ onRegionChange, currentRegionKey, user, onLogin, showAuth = false }) {
 
   const handleSelectChange = (event) => {
@@ -17,14 +16,16 @@ function Header({ onRegionChange, currentRegionKey, user, onLogin, showAuth = fa
   };
 
   return (
-    <div className="header">
+    // THÊM CLASS: header-transparent nếu đang ở trang chủ (showAuth=true)
+    <div className="header" >
       <div className="logo-container">
         <Link to="/" className="logo">
+          {/* Logo bàn tay trái tim */}
           <i className="fas fa-hand-holding-heart"></i>
-          <span>Cứu Hộ</span>
+          {/* THAY ĐỔI CHỮ LOGO THEO YÊU CẦU */}
+          <span>CỨU HỘ CỨU TRỢ</span>
         </Link>
 
-        {/* Chỉ hiện Select vùng khi ở trang Map (có hàm onRegionChange) */}
         {onRegionChange && (
             <select
             className="location-select"
@@ -42,12 +43,12 @@ function Header({ onRegionChange, currentRegionKey, user, onLogin, showAuth = fa
 
       <div className="header-nav">
         <div className="desktop-only" style={{display: 'flex', gap: '16px'}}>
+            {/* Các nút điều hướng sẽ được CSS xử lý trong suốt */}
             <NavLink to="/" className="nav-link" end>Trang chủ</NavLink>
             <NavLink to="/ban-do" className="nav-link">Bản đồ</NavLink>
             <NavLink to="/lien-he" className="nav-link">Liên hệ</NavLink>
         </div>
 
-        {/* LOGIC: Chỉ hiện nút đăng nhập nếu showAuth = true (Trang chủ) */}
         {showAuth && (
             <div className="auth-actions">
                 {user ? (
@@ -74,6 +75,5 @@ function Header({ onRegionChange, currentRegionKey, user, onLogin, showAuth = fa
     </div>
   );
 }
-
 
 export default Header;

@@ -1,29 +1,56 @@
 import React, { useState } from 'react';
 import { updateIncident, deleteIncident } from '../../config/firebaseConfig';
 
+// --- HÀM TÍNH THỜI GIAN TƯƠNG ĐỐI (MỚI) ---
+const getRelativeTime = (timestamp) => {
+  if (!timestamp || !timestamp.seconds) return 'Vừa xong';
+
+  const now = new Date();
+  const incidentTime = new Date(timestamp.seconds * 1000);
+  const diffInSeconds = Math.floor((now - incidentTime) / 1000);
+
+  if (diffInSeconds < 60) return 'Vừa xong';
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} giờ trước`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays} ngày trước`;
+
+  // Nếu quá 7 ngày thì hiển thị ngày tháng
+  return incidentTime.toLocaleDateString('vi-VN');
+};
+
 function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardClick, onEditIncident }) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   // --- XỬ LÝ MÀU SẮC THEO LOẠI TIN ---
   let typeName = '';
-  let typeColor = '#555'; // Màu mặc định
+  let typeColor = '#555';
 
   switch(incident.type) {
     case 'rescue':
         typeName = 'Cần cứu hộ';
-        typeColor = '#d9534f'; // Đỏ
+        typeColor = '#d9534f';
         break;
     case 'help':
         typeName = 'Đội cứu hộ';
-        typeColor = '#5bc0de'; // Xanh
+        typeColor = '#5bc0de';
         break;
     case 'warning':
         typeName = 'Cảnh báo';
-        typeColor = '#f0ad4e'; // Cam
+        typeColor = '#f0ad4e';
+        break;
+    case 'supply': // <--- THÊM CASE NÀY
+        typeName = 'Cần nhu yếu phẩm';
+        typeColor = '#db2777'; // Màu hồng
         break;
     default:
         typeName = 'Tin tức';
-        typeColor = '#8b5cf6'; // Tím (Map với CSS mới)
+        typeColor = '#8b5cf6';
   }
 
   // --- XỬ LÝ TRẠNG THÁI ---
@@ -42,7 +69,8 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
     statusClass = 'resolved';
   }
 
-  const time = incident.time ? new Date(incident.time.seconds * 1000).toLocaleString('vi-VN') : 'Vừa xong';
+  // 🔥 SỬA ĐỔI: Sử dụng hàm getRelativeTime thay vì toLocaleString
+  const timeDisplay = getRelativeTime(incident.time);
 
   const handleStatusUpdate = async (newStatus, event) => {
     event.stopPropagation();
@@ -96,7 +124,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
     <div
       className="incident-card"
       data-type={incident.type}
-      // 🔥 THAY ĐỔI Ở ĐÂY: Truyền cả object incident thay vì chỉ lat, lng
       onClick={() => onCardClick(incident)}
       style={{ borderLeft: `5px solid ${typeColor}` }}
     >
@@ -105,7 +132,10 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
           <span className="incident-type" style={{ color: typeColor, fontWeight: 'bold' }}>{typeName}</span>
           <span className={`status-badge status-${statusClass}`}>{statusText}</span>
         </div>
-        <span className="incident-time" style={{ fontSize: '12px', color: '#999' }}>{time}</span>
+        {/* 🔥 Hiển thị thời gian tương đối tại đây */}
+        <span className="incident-time" style={{ fontSize: '12px', color: '#718096', fontStyle: 'italic' }}>
+            {timeDisplay}
+        </span>
       </div>
 
       <div className="incident-title" style={{ fontWeight: '600', margin: '8px 0' }}>{incident.title}</div>

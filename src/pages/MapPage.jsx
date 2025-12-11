@@ -16,25 +16,30 @@ function MapPage() {
   } = useOutletContext();
 
   const [selectedIncident, setSelectedIncident] = useState(null);
+  const [moveTrigger, setMoveTrigger] = useState(0);
 
   useEffect(() => {
     setSelectedIncident(null);
   }, [currentRegion]);
 
-  // Hàm xử lý click
   const handleCardClick = (incident) => {
     if (!incident) return;
-    // Cứ set vào state, việc hiển thị Map hay Modal sẽ do logic ở dưới quyết định
     setSelectedIncident(incident);
+    setMoveTrigger(Date.now());
   };
 
-  // Logic kiểm tra xem có cần hiện Modal giữa màn hình không
-  // Điều kiện: Có bài được chọn VÀ (thiếu lat HOẶC thiếu lng)
-  const shouldShowModal = selectedIncident && (!selectedIncident.lat || !selectedIncident.lng);
+  // 🔥 SỬA LOGIC HIỆN MODAL TO:
+  // Hiện khi: (Chưa có tọa độ) HOẶC (Có tọa độ nhưng là chung chung - isGeneral)
+  const shouldShowModal = selectedIncident && (
+      !selectedIncident.lat ||
+      !selectedIncident.lng ||
+      selectedIncident.isGeneral
+  );
 
   return (
     <div className="container">
       <Sidebar
+        // ... (Props Sidebar giữ nguyên)
         incidents={incidents}
         onOpenModal={onOpenModal}
         onOpenFilterModal={onOpenFilterModal}
@@ -56,14 +61,17 @@ function MapPage() {
           currentFilter={currentFilter}
           onFilterChange={onFilterChange}
           incidentCounts={incidentCounts}
-          // Chỉ truyền xuống MapWrapper nếu CÓ tọa độ để tránh lỗi map
-          selectedIncident={(!shouldShowModal) ? selectedIncident : null}
+
+          // 🔥 QUAN TRỌNG: Luôn truyền selectedIncident xuống để MapLogic bay được
+          // (Bỏ điều kiện !shouldShowModal cũ đi vì giờ ta muốn vừa bay, vừa hiện modal)
+          selectedIncident={selectedIncident}
+
           timeFilter={timeFilter}
           onOpenFilterModal={handleOpenFilter}
           onMarkerClick={handleCardClick}
+          moveTrigger={moveTrigger}
         />
 
-        {/* 🔥 HIỂN THỊ MODAL NẾU KHÔNG CÓ TỌA ĐỘ 🔥 */}
         {shouldShowModal && (
           <DetailModal
             incident={selectedIncident}
@@ -83,8 +91,9 @@ function DetailModal({ incident, onClose }) {
   let typeColor = '#8b5cf6';
   switch(incident.type) {
     case 'rescue': typeName = 'Cần cứu hộ'; typeColor = '#d9534f'; break;
+    case 'supply': typeName = 'Cần nhu yếu phẩm'; typeColor = '#db2777'; break;
     case 'help': typeName = 'Đội cứu hộ'; typeColor = '#5bc0de'; break;
-    case 'warning': typeName = 'Cảnh báo'; typeColor = '#f0ad4e'; break;
+    case 'warning': typeName = 'Cảnh báo'; typeColor = '#f0ad4e'; break
   }
 
   return (

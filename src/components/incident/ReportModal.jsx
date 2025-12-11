@@ -219,19 +219,20 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
 
             <div className="form-group">
               <label className="form-label">Loại sự kiện *</label>
-              <select
-                className="form-select"
-                name="type"
-                value={formData.type}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Chọn phân loại</option>
-                <option value="rescue">🆘 Cần cứu hộ khẩn cấp</option>
-                <option value="help">🤝 Đội cứu trợ / Từ thiện</option>
-                <option value="warning">⚠️ Cảnh báo nguy hiểm</option>
-                <option value="news">📰 Tin tức </option> {/* MỚI */}
-              </select>
+            <select
+  className="form-select"
+  name="type"
+  value={formData.type}
+  onChange={handleInputChange}
+  required
+>
+  <option value="">Chọn phân loại</option>
+  <option value="rescue">🆘 Cần cứu hộ khẩn cấp</option>
+  <option value="supply">📦 Cần nhu yếu phẩm / Vật tư</option> {/* <-- THÊM DÒNG NÀY */}
+  <option value="help">🤝 Đội cứu trợ / Từ thiện</option>
+  <option value="warning">⚠️ Cảnh báo nguy hiểm</option>
+  <option value="news">📰 Tin tức</option>
+</select>
             </div>
 
             <div className="form-group">

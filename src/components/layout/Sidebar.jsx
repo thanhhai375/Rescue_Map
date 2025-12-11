@@ -207,9 +207,7 @@ function Sidebar({
             <button onClick={handleLogout} className="logout-btn">Đăng xuất</button>
           </div>
         ) : (
-          <button onClick={handleLogin} className="login-btn">
-            Đăng nhập (Quản lý)
-          </button>
+                null
         )}
       </div>
 

@@ -176,14 +176,15 @@ function App() {
     }
   };
 
- const incidentCounts = useMemo(() => {
+const incidentCounts = useMemo(() => {
     const approvedIncidents = incidents.filter(i => i.status !== 'pending');
     return {
       all: approvedIncidents.length,
       rescue: approvedIncidents.filter(i => i.type === 'rescue').length,
+      supply: approvedIncidents.filter(i => i.type === 'supply').length, // <--- THÊM DÒNG NÀY
       help: approvedIncidents.filter(i => i.type === 'help').length,
       warning: approvedIncidents.filter(i => i.type === 'warning').length,
-      news: approvedIncidents.filter(i => i.type === 'news').length, // MỚI
+      news: approvedIncidents.filter(i => i.type === 'news').length,
     };
   }, [incidents]);
 

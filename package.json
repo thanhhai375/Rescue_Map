@@ -11,9 +11,12 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "firebase": "^12.6.0",
+    "leaflet": "^1.9.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.5",
+    "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.10.1",
     "rss-parser": "^3.13.0"
   },
   "devDependencies": {

@@ -54,6 +54,9 @@ function MapUI({ currentFilter, onFilterChange, counts, map, timeFilter, onOpenF
         <button className={`control-btn ${currentFilter === 'warning' ? 'active' : ''}`} onClick={() => onFilterChange('warning')}>
           <i className="fas fa-exclamation-triangle"></i> <span>Cảnh báo</span> <span className="count-badge">{counts.warning}</span>
         </button>
+        <button className={`control-btn ${currentFilter === 'supply' ? 'active' : ''}`} onClick={() => onFilterChange('supply')}>
+  <i className="fas fa-box-open"></i> <span>Vật tư</span> <span className="count-badge">{counts.supply || 0}</span>
+</button>
 
         {/* --- NÚT MỚI: TIN TỨC --- */}
         <button
