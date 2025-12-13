@@ -2,10 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import MapWrapper from '../components/map/MapWrapper';
+import { REGIONS } from '../constants/regionData'; // 🔥 BẮT BUỘC IMPORT CÁI NÀY
 
-// --- CHÈN COMPONENT DETAIL MODAL VÀO ĐÂY (Hoặc import từ file riêng) ---
-// (Dán đoạn code DetailModal ở Bước 1 vào đây)
-// ------------------------------------------------------------------
+// Hàm kiểm tra xem tên địa điểm có phải là Tỉnh/Thành không
+const isRegionLocation = (locationName) => {
+    if (!locationName) return false;
+    const cleanLoc = locationName.toLowerCase().trim();
+    // Kiểm tra xem tên địa điểm có chứa tên tỉnh nào không (VD: "TP. Hồ Chí Minh" chứa "hồ chí minh")
+    return REGIONS.some(r => {
+        const regionName = r.name.toLowerCase();
+        return cleanLoc === regionName || cleanLoc.includes(regionName) || regionName.includes(cleanLoc);
+    });
+};
 
 function MapPage() {
   const {
@@ -16,30 +24,35 @@ function MapPage() {
   } = useOutletContext();
 
   const [selectedIncident, setSelectedIncident] = useState(null);
+  // Trigger để báo hiệu Map bay (FlyTo) mỗi khi click
   const [moveTrigger, setMoveTrigger] = useState(0);
 
   useEffect(() => {
     setSelectedIncident(null);
   }, [currentRegion]);
 
+  // Hàm xử lý khi click vào thẻ tin bên trái hoặc Marker trên bản đồ
   const handleCardClick = (incident) => {
     if (!incident) return;
     setSelectedIncident(incident);
-    setMoveTrigger(Date.now());
+    setMoveTrigger(Date.now()); // Tạo số ngẫu nhiên để kích hoạt useEffect bên MapWrapper
   };
 
-  // 🔥 SỬA LOGIC HIỆN MODAL TO:
-  // Hiện khi: (Chưa có tọa độ) HOẶC (Có tọa độ nhưng là chung chung - isGeneral)
+  // 🔥 LOGIC QUAN TRỌNG NHẤT: KHI NÀO THÌ HIỆN MODAL TO GIỮA MÀN HÌNH?
+  // Hiện khi:
+  // 1. Không có tọa độ (lat/lng bị thiếu)
+  // 2. HOẶC đã được đánh dấu là chung chung (isGeneral = true)
+  // 3. HOẶC tên địa điểm trùng với tên Tỉnh/Thành (dành cho dữ liệu cũ chưa có cờ isGeneral)
   const shouldShowModal = selectedIncident && (
       !selectedIncident.lat ||
       !selectedIncident.lng ||
-      selectedIncident.isGeneral
+      selectedIncident.isGeneral === true ||
+      isRegionLocation(selectedIncident.location)
   );
 
   return (
     <div className="container">
       <Sidebar
-        // ... (Props Sidebar giữ nguyên)
         incidents={incidents}
         onOpenModal={onOpenModal}
         onOpenFilterModal={onOpenFilterModal}
@@ -62,8 +75,7 @@ function MapPage() {
           onFilterChange={onFilterChange}
           incidentCounts={incidentCounts}
 
-          // 🔥 QUAN TRỌNG: Luôn truyền selectedIncident xuống để MapLogic bay được
-          // (Bỏ điều kiện !shouldShowModal cũ đi vì giờ ta muốn vừa bay, vừa hiện modal)
+          // Luôn truyền selectedIncident xuống để bản đồ biết đường bay tới đó
           selectedIncident={selectedIncident}
 
           timeFilter={timeFilter}
@@ -72,6 +84,7 @@ function MapPage() {
           moveTrigger={moveTrigger}
         />
 
+        {/* 🔥 HIỂN THỊ MODAL NẾU THỎA MÃN ĐIỀU KIỆN TRÊN */}
         {shouldShowModal && (
           <DetailModal
             incident={selectedIncident}
@@ -82,18 +95,20 @@ function MapPage() {
     </div>
   );
 }
-// Component hiển thị thông tin chi tiết giữa màn hình
+
+// Component hiển thị thông tin chi tiết giữa màn hình (Popup to)
 function DetailModal({ incident, onClose }) {
   if (!incident) return null;
 
-  // Tái sử dụng logic màu sắc
   let typeName = 'Tin tức';
   let typeColor = '#8b5cf6';
+
+  // Cập nhật màu sắc cho đúng chuẩn mới
   switch(incident.type) {
     case 'rescue': typeName = 'Cần cứu hộ'; typeColor = '#d9534f'; break;
     case 'supply': typeName = 'Cần nhu yếu phẩm'; typeColor = '#db2777'; break;
     case 'help': typeName = 'Đội cứu hộ'; typeColor = '#5bc0de'; break;
-    case 'warning': typeName = 'Cảnh báo'; typeColor = '#f0ad4e'; break
+    case 'warning': typeName = 'Cảnh báo'; typeColor = '#f0ad4e'; break;
   }
 
   return (
@@ -108,7 +123,6 @@ function DetailModal({ incident, onClose }) {
         position: 'relative', boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
       }} onClick={e => e.stopPropagation()}>
 
-        {/* Nút đóng */}
         <button onClick={onClose} style={{
           position: 'absolute', top: '10px', right: '10px',
           background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666'
@@ -116,7 +130,6 @@ function DetailModal({ incident, onClose }) {
           <i className="fas fa-times"></i>
         </button>
 
-        {/* Header */}
         <div style={{ marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
           <span style={{
             backgroundColor: typeColor, color: 'white',
@@ -130,7 +143,6 @@ function DetailModal({ incident, onClose }) {
           </div>
         </div>
 
-        {/* Nội dung */}
         <div style={{ fontSize: '14px', lineHeight: '1.6', color: '#444' }}>
           <p style={{marginBottom: '10px'}}><strong>Mô tả:</strong> {incident.description}</p>
 
@@ -155,10 +167,9 @@ function DetailModal({ incident, onClose }) {
           )}
         </div>
 
-        {/* Footer cảnh báo */}
-        <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#fff3cd', color: '#856404', borderRadius: '5px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-           <i className="fas fa-exclamation-triangle"></i>
-           <span>Bài viết này chưa có tọa độ cụ thể trên bản đồ.</span>
+        <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', borderRadius: '5px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+           <i className="fas fa-info-circle"></i>
+           <span>Tin tức này thuộc khu vực chung, chưa có địa chỉ cụ thể.</span>
         </div>
 
       </div>

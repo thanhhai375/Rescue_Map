@@ -116,9 +116,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
       if (onEditIncident) onEditIncident(incident);
   };
 
-  const googleMapsLink = incident.lat && incident.lng
-    ? `http://googleusercontent.com/maps.google.com/maps?q=${incident.lat},${incident.lng}`
-    : null;
 
   return (
     <div
@@ -167,12 +164,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
             </a>
           ) : (
             <span style={{ color: '#aaa', fontSize: '13px' }}>Không nguồn</span>
-          )}
-
-          {googleMapsLink && (
-            <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: '#28a745' }}>
-               <i className="fas fa-map"></i> Chỉ đường
-            </a>
           )}
         </div>
 
