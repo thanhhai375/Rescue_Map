@@ -8,7 +8,7 @@ function IncidentList({
   handleLogin,
   currentFilter,
   onCardClick,
-  onEditIncident // Nhận prop này
+  onEditIncident
 }) {
 
   const filteredIncidents = incidents.filter(incident => {
@@ -31,13 +31,12 @@ function IncidentList({
             isAdmin={isAdmin}
             handleLogin={handleLogin}
             onCardClick={onCardClick}
-            onEditIncident={onEditIncident} // Truyền tiếp xuống Card
+            onEditIncident={onEditIncident}
           />
         ))
       )}
     </div>
   );
 }
-
 
 export default IncidentList;

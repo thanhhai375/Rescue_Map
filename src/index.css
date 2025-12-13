@@ -1831,6 +1831,4 @@ position: absolute;
 .leaflet-pane.leaflet-popup-pane {
   z-index: 2000 !important; /* Mặc định là 700, ta tăng lên 2000 */
 }
-.leaflet-routing-container {
-    display: none !important;
-}
+

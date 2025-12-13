@@ -3,33 +3,29 @@ import { auth } from '../../config/firebaseConfig';
 import { scanNewsWithAI } from '../../services/geminiScanner';
 import IncidentList from '../incident/IncidentList';
 
-// CẤU HÌNH: Tự động quét mỗi 60 phút
 const AUTO_SCAN_INTERVAL = 60 * 60 * 1000;
 
-// --- 1. COMPONENT THÔNG BÁO ĐẸP (MỚI) ---
 const NotificationModal = ({ message, type, onClose }) => {
   useEffect(() => {
-    // Tự động tắt sau 3 giây
     const timer = setTimeout(onClose, 3000);
     return () => clearTimeout(timer);
   }, [onClose]);
 
-  // Cấu hình màu sắc và icon theo loại thông báo
   let icon = 'fa-info-circle';
-  let iconColor = '#3b82f6'; // Blue
+  let iconColor = '#3b82f6';
   let title = 'Thông báo';
 
   if (type === 'success') {
     icon = 'fa-check-circle';
-    iconColor = '#10b981'; // Green
+    iconColor = '#10b981';
     title = 'Thành công';
   } else if (type === 'error') {
     icon = 'fa-exclamation-circle';
-    iconColor = '#ef4444'; // Red
+    iconColor = '#ef4444';
     title = 'Lỗi';
   } else if (type === 'warning') {
     icon = 'fa-exclamation-triangle';
-    iconColor = '#f59e0b'; // Orange
+    iconColor = '#f59e0b';
     title = 'Lưu ý';
   }
 
@@ -37,7 +33,7 @@ const NotificationModal = ({ message, type, onClose }) => {
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: 'rgba(0,0,0,0.3)', // Nền mờ nhẹ
+      backgroundColor: 'rgba(0,0,0,0.3)',
       animation: 'fadeIn 0.2s ease-out'
     }} onClick={onClose}>
       <div style={{
@@ -49,16 +45,12 @@ const NotificationModal = ({ message, type, onClose }) => {
       }} onClick={e => e.stopPropagation()}>
 
         <i className={`fas ${icon}`} style={{ fontSize: '40px', color: iconColor, marginBottom: '15px' }}></i>
-
         <h3 style={{ margin: '0 0 8px 0', color: '#333', fontSize: '18px' }}>{title}</h3>
-
         <p style={{ margin: 0, color: '#666', textAlign: 'center', lineHeight: '1.5', fontSize: '14px' }}>
           {message}
         </p>
 
       </div>
-
-      {/* Thêm keyframe animation inline */}
       <style>{`
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-20px); }
@@ -73,15 +65,12 @@ const NotificationModal = ({ message, type, onClose }) => {
   );
 };
 
-// --- 2. COMPONENT SIDEBAR CHÍNH ---
 function Sidebar({
   incidents, onOpenModal, onOpenFilterModal, onIncidentAdded,
   user, isAdmin, handleLogin, currentFilter, searchQuery, onSearchChange, onCardClick, onEditIncident
 }) {
   const [isScanning, setIsScanning] = useState(false);
   const [lastScanTime, setLastScanTime] = useState(null);
-
-  // State quản lý thông báo (null = không hiện)
   const [notification, setNotification] = useState(null);
 
   const scanIntervalRef = useRef(null);
@@ -100,14 +89,12 @@ function Sidebar({
     auth.signOut();
   };
 
-  // Hàm hiển thị thông báo thay cho alert
   const showNotify = (message, type = 'info') => {
       if (isMountedRef.current) {
           setNotification({ message, type });
       }
   };
 
-  // --- HÀM QUÉT TIN (ĐÃ SỬA DÙNG NOTIFICATION) ---
   const performScan = async (isAuto = false) => {
     if (isScanning) return;
     if (isMountedRef.current) setIsScanning(true);
@@ -120,7 +107,6 @@ function Sidebar({
       if (!result) {
          console.log("Hệ thống: Quét xong nhưng không có tin mới.");
          if (!isAuto) {
-             // THAY ALERT BẰNG NOTIFY
              showNotify("Hiện chưa có tin tức mới nào cần cập nhật.", "warning");
          }
          setLastScanTime(new Date());
@@ -128,13 +114,10 @@ function Sidebar({
          return;
       }
 
-      // Có tin mới
       if (!isAuto) {
         const message = result.title
             ? `Đã tìm thấy và thêm tin mới:\n"${result.title}"`
             : `Hệ thống đã cập nhật dữ liệu tin tức mới thành công.`;
-
-        // THAY ALERT BẰNG NOTIFY
         showNotify(message, "success");
       }
 
@@ -144,7 +127,6 @@ function Sidebar({
     } catch (error) {
       console.error("Lỗi quét:", error);
       if (!isAuto && isMountedRef.current) {
-          // THAY ALERT BẰNG NOTIFY
           showNotify(`Lỗi hệ thống: ${error.message || "Vui lòng kiểm tra kết nối."}`, "error");
       }
     } finally {
@@ -170,7 +152,6 @@ function Sidebar({
 
   return (
     <div className="sidebar">
-      {/* 3. HIỂN THỊ COMPONENT THÔNG BÁO NẾU CÓ STATE */}
       {notification && (
           <NotificationModal
               message={notification.message}
@@ -206,9 +187,7 @@ function Sidebar({
             <span>Chào bạn: <strong>{user.email}</strong></span>
             <button onClick={handleLogout} className="logout-btn">Đăng xuất</button>
           </div>
-        ) : (
-                null
-        )}
+        ) : null}
       </div>
 
       <div className="search-box">

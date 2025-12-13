@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { addIncident, updateIncident, serverTimestamp } from '../../config/firebaseConfig';
 
-// Dữ liệu form ban đầu (trống)
 const initialFormData = {
   type: '',
   title: '',
@@ -12,7 +11,6 @@ const initialFormData = {
 };
 
 function ReportModal({ isOpen, onClose, incidentToEdit }) {
-  // State quản lý dữ liệu gõ vào
   const [formData, setFormData] = useState(initialFormData);
   const [isFormValid, setIsFormValid] = useState(false);
 
@@ -21,9 +19,9 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
   const [gpsStatusColor, setGpsStatusColor] = useState('#6b7280');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGettingGps, setIsGettingGps] = useState(false);
-  const [isGeocoding, setIsGeocoding] = useState(false); // State mới cho tìm tọa độ từ địa chỉ
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
-  // --- LOGIC EDIT: Điền dữ liệu cũ vào form khi mở chế độ sửa ---
+  // Populate form data when editing
   useEffect(() => {
     if (incidentToEdit) {
       setFormData({
@@ -40,7 +38,6 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
         setGpsStatusColor("#10b981");
       }
     } else {
-      // Nếu không phải edit (tức là thêm mới), reset form
       setFormData(initialFormData);
       setCurrentCoordinates(null);
       setGpsStatus('(Bắt buộc để định vị chính xác trên bản đồ)');
@@ -48,7 +45,7 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
     }
   }, [incidentToEdit, isOpen]);
 
-  // Validate form
+  // Validate required fields
   useEffect(() => {
     const { type, title, description, location, phone } = formData;
     if (type && title && description && location && phone) {
@@ -66,14 +63,9 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
     }));
   };
 
-  // --- TÍNH NĂNG 1: TỰ ĐỘNG TÌM TỌA ĐỘ TỪ ĐỊA CHỈ (Geocoding) ---
+  // Feature: Auto-fetch coordinates from address (Geocoding)
   const handleBlurLocation = async () => {
-    // Nếu ô địa chỉ trống, không làm gì cả
     if (!formData.location) return;
-
-    // Nếu đã có tọa độ rồi thì thôi, không tìm lại để tránh ghi đè (trừ khi người dùng xóa tọa độ thủ công - logic nâng cao)
-    // Tuy nhiên, nếu người dùng sửa địa chỉ, họ có thể muốn tìm lại tọa độ.
-    // Ở đây ta tạm thời ưu tiên: Nếu đã có coords thì không auto-fetch lại để tránh mất GPS chính xác.
     if (currentCoordinates) return;
 
     setIsGeocoding(true);
@@ -81,7 +73,6 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
     setGpsStatusColor("#f97316");
 
     try {
-      // Sử dụng API miễn phí của OpenStreetMap (Nominatim)
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.location)}&countrycodes=vn&limit=1`);
       const data = await response.json();
 
@@ -103,7 +94,7 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
     }
   };
 
-  // --- TÍNH NĂNG 2: LẤY GPS VÀ TỰ ĐIỀN ĐỊA CHỈ (Reverse Geocoding) ---
+  // Feature: Get GPS location and auto-fill address (Reverse Geocoding)
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       setGpsStatus("Trình duyệt của bạn không hỗ trợ lấy GPS.");
@@ -124,12 +115,10 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
         setGpsStatus(`Đã lấy vị trí: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
         setGpsStatusColor("#10b981");
 
-        // Gọi API để lấy địa chỉ từ tọa độ
         try {
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`);
             const data = await response.json();
             if (data && data.display_name) {
-                // Tự động điền vào ô địa chỉ nếu ô đó đang trống
                 if (!formData.location) {
                     setFormData(prev => ({ ...prev, location: data.display_name }));
                 }
@@ -152,7 +141,6 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
     );
   };
 
-  // Hàm reset tọa độ để người dùng chọn lại (nếu muốn)
   const handleResetCoordinates = () => {
     setCurrentCoordinates(null);
     setGpsStatus('(Bắt buộc để định vị chính xác trên bản đồ)');
@@ -220,19 +208,19 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
             <div className="form-group">
               <label className="form-label">Loại sự kiện *</label>
             <select
-  className="form-select"
-  name="type"
-  value={formData.type}
-  onChange={handleInputChange}
-  required
->
-  <option value="">Chọn phân loại</option>
-  <option value="rescue">🆘 Cần cứu hộ khẩn cấp</option>
-  <option value="supply">📦 Cần nhu yếu phẩm / Vật tư</option> {/* <-- THÊM DÒNG NÀY */}
-  <option value="help">🤝 Đội cứu trợ / Từ thiện</option>
-  <option value="warning">⚠️ Cảnh báo nguy hiểm</option>
-  <option value="news">📰 Tin tức</option>
-</select>
+              className="form-select"
+              name="type"
+              value={formData.type}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="">Chọn phân loại</option>
+              <option value="rescue">🆘 Cần cứu hộ khẩn cấp</option>
+              <option value="supply">📦 Cần nhu yếu phẩm / Vật tư</option>
+              <option value="help">🤝 Đội cứu trợ / Từ thiện</option>
+              <option value="warning">⚠️ Cảnh báo nguy hiểm</option>
+              <option value="news">📰 Tin tức</option>
+            </select>
             </div>
 
             <div className="form-group">
@@ -293,7 +281,6 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
             <div className="form-group">
               <label className="form-label">Tọa độ GPS *</label>
 
-              {/* --- LOGIC MỚI: CHỈ HIỆN NÚT KHI CHƯA CÓ TỌA ĐỘ --- */}
               {!currentCoordinates && (
                 <button type="button" className="btn btn-secondary" onClick={handleGetLocation} disabled={isGettingGps}>
                   {isGettingGps ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-crosshairs"></i>}
@@ -301,7 +288,6 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
                 </button>
               )}
 
-              {/* Nếu đã có tọa độ, hiển thị nút Reset nhỏ (tùy chọn, để lỡ tìm sai còn sửa lại được) */}
               {currentCoordinates && (
                  <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', padding: '10px', borderRadius: '8px', border: '1px solid #bbf7d0'}}>
                     <span style={{color: '#15803d', fontWeight: '500', fontSize: '13px'}}>
@@ -348,6 +334,5 @@ function ReportModal({ isOpen, onClose, incidentToEdit }) {
     </div>
   );
 }
-
 
 export default ReportModal;

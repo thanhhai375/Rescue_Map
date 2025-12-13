@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import MapWrapper from '../components/map/MapWrapper';
-import { REGIONS } from '../constants/regionData'; // 🔥 BẮT BUỘC IMPORT CÁI NÀY
+import { REGIONS } from '../constants/regionData';
 
-// Hàm kiểm tra xem tên địa điểm có phải là Tỉnh/Thành không
 const isRegionLocation = (locationName) => {
     if (!locationName) return false;
     const cleanLoc = locationName.toLowerCase().trim();
-    // Kiểm tra xem tên địa điểm có chứa tên tỉnh nào không (VD: "TP. Hồ Chí Minh" chứa "hồ chí minh")
     return REGIONS.some(r => {
         const regionName = r.name.toLowerCase();
         return cleanLoc === regionName || cleanLoc.includes(regionName) || regionName.includes(cleanLoc);
@@ -24,25 +22,18 @@ function MapPage() {
   } = useOutletContext();
 
   const [selectedIncident, setSelectedIncident] = useState(null);
-  // Trigger để báo hiệu Map bay (FlyTo) mỗi khi click
   const [moveTrigger, setMoveTrigger] = useState(0);
 
   useEffect(() => {
     setSelectedIncident(null);
   }, [currentRegion]);
 
-  // Hàm xử lý khi click vào thẻ tin bên trái hoặc Marker trên bản đồ
   const handleCardClick = (incident) => {
     if (!incident) return;
     setSelectedIncident(incident);
-    setMoveTrigger(Date.now()); // Tạo số ngẫu nhiên để kích hoạt useEffect bên MapWrapper
+    setMoveTrigger(Date.now());
   };
 
-  // 🔥 LOGIC QUAN TRỌNG NHẤT: KHI NÀO THÌ HIỆN MODAL TO GIỮA MÀN HÌNH?
-  // Hiện khi:
-  // 1. Không có tọa độ (lat/lng bị thiếu)
-  // 2. HOẶC đã được đánh dấu là chung chung (isGeneral = true)
-  // 3. HOẶC tên địa điểm trùng với tên Tỉnh/Thành (dành cho dữ liệu cũ chưa có cờ isGeneral)
   const shouldShowModal = selectedIncident && (
       !selectedIncident.lat ||
       !selectedIncident.lng ||
@@ -74,17 +65,13 @@ function MapPage() {
           currentFilter={currentFilter}
           onFilterChange={onFilterChange}
           incidentCounts={incidentCounts}
-
-          // Luôn truyền selectedIncident xuống để bản đồ biết đường bay tới đó
           selectedIncident={selectedIncident}
-
           timeFilter={timeFilter}
           onOpenFilterModal={handleOpenFilter}
           onMarkerClick={handleCardClick}
           moveTrigger={moveTrigger}
         />
 
-        {/* 🔥 HIỂN THỊ MODAL NẾU THỎA MÃN ĐIỀU KIỆN TRÊN */}
         {shouldShowModal && (
           <DetailModal
             incident={selectedIncident}
@@ -96,14 +83,12 @@ function MapPage() {
   );
 }
 
-// Component hiển thị thông tin chi tiết giữa màn hình (Popup to)
 function DetailModal({ incident, onClose }) {
   if (!incident) return null;
 
   let typeName = 'Tin tức';
   let typeColor = '#8b5cf6';
 
-  // Cập nhật màu sắc cho đúng chuẩn mới
   switch(incident.type) {
     case 'rescue': typeName = 'Cần cứu hộ'; typeColor = '#d9534f'; break;
     case 'supply': typeName = 'Cần nhu yếu phẩm'; typeColor = '#db2777'; break;

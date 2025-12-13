@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { updateIncident, deleteIncident } from '../../config/firebaseConfig';
 
-// --- HÀM TÍNH THỜI GIAN TƯƠNG ĐỐI (MỚI) ---
+// Utility: Format timestamp to relative time string
 const getRelativeTime = (timestamp) => {
   if (!timestamp || !timestamp.seconds) return 'Vừa xong';
 
@@ -20,14 +20,13 @@ const getRelativeTime = (timestamp) => {
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays} ngày trước`;
 
-  // Nếu quá 7 ngày thì hiển thị ngày tháng
   return incidentTime.toLocaleDateString('vi-VN');
 };
 
 function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardClick, onEditIncident }) {
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // --- XỬ LÝ MÀU SẮC THEO LOẠI TIN ---
+  // Configure UI based on incident type
   let typeName = '';
   let typeColor = '#555';
 
@@ -44,16 +43,16 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
         typeName = 'Cảnh báo';
         typeColor = '#f0ad4e';
         break;
-    case 'supply': // <--- THÊM CASE NÀY
+    case 'supply':
         typeName = 'Cần nhu yếu phẩm';
-        typeColor = '#db2777'; // Màu hồng
+        typeColor = '#db2777';
         break;
     default:
         typeName = 'Tin tức';
         typeColor = '#8b5cf6';
   }
 
-  // --- XỬ LÝ TRẠNG THÁI ---
+  // Configure Status Badge
   let statusText = 'Mới';
   let statusClass = 'new';
   const currentStatus = incident.status || 'new';
@@ -69,7 +68,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
     statusClass = 'resolved';
   }
 
-  // 🔥 SỬA ĐỔI: Sử dụng hàm getRelativeTime thay vì toLocaleString
   const timeDisplay = getRelativeTime(incident.time);
 
   const handleStatusUpdate = async (newStatus, event) => {
@@ -116,7 +114,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
       if (onEditIncident) onEditIncident(incident);
   };
 
-
   return (
     <div
       className="incident-card"
@@ -129,7 +126,6 @@ function IncidentCard({ incident, onStatusUpdate, isAdmin, handleLogin, onCardCl
           <span className="incident-type" style={{ color: typeColor, fontWeight: 'bold' }}>{typeName}</span>
           <span className={`status-badge status-${statusClass}`}>{statusText}</span>
         </div>
-        {/* 🔥 Hiển thị thời gian tương đối tại đây */}
         <span className="incident-time" style={{ fontSize: '12px', color: '#718096', fontStyle: 'italic' }}>
             {timeDisplay}
         </span>

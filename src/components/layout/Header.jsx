@@ -16,60 +16,56 @@ function Header({ onRegionChange, currentRegionKey, user, onLogin, showAuth = fa
   };
 
   return (
-    // THÊM CLASS: header-transparent nếu đang ở trang chủ (showAuth=true)
-    <div className="header" >
+    <div className={`header ${showAuth ? 'header-transparent' : ''}`}>
       <div className="logo-container">
         <Link to="/" className="logo">
-          {/* Logo bàn tay trái tim */}
           <i className="fas fa-hand-holding-heart"></i>
-          {/* THAY ĐỔI CHỮ LOGO THEO YÊU CẦU */}
           <span>CỨU HỘ CỨU TRỢ</span>
         </Link>
 
         {onRegionChange && (
-            <select
+          <select
             className="location-select"
             value={currentRegionKey}
             onChange={handleSelectChange}
-            >
+          >
             {REGIONS.map((region) => (
-                <option key={region.key} value={region.key}>
+              <option key={region.key} value={region.key}>
                 {region.name}
-                </option>
+              </option>
             ))}
-            </select>
+          </select>
         )}
       </div>
 
       <div className="header-nav">
         <div className="desktop-only" style={{display: 'flex', gap: '16px'}}>
-            {/* Các nút điều hướng sẽ được CSS xử lý trong suốt */}
-            <NavLink to="/" className="nav-link" end>Trang chủ</NavLink>
-            <NavLink to="/ban-do" className="nav-link">Bản đồ</NavLink>
-            <NavLink to="/lien-he" className="nav-link">Liên hệ</NavLink>
+          <NavLink to="/" className="nav-link" end>Trang chủ</NavLink>
+          <NavLink to="/ban-do" className="nav-link">Bản đồ</NavLink>
+          <NavLink to="/lien-he" className="nav-link">Liên hệ</NavLink>
         </div>
 
         {showAuth && (
-            <div className="auth-actions">
-                {user ? (
-                    <div className="user-menu">
-                        <span className="user-avatar" title={user.email}>
-                            {user.photoURL ? (
-                                <img src={user.photoURL} alt="Avatar" />
-                            ) : (
-                                <i className="fas fa-user-circle"></i>
-                            )}
-                        </span>
-                        <button onClick={handleLogout} className="logout-btn-header" title="Đăng xuất">
-                            <i className="fas fa-sign-out-alt"></i>
-                        </button>
-                    </div>
-                ) : (
-                    <button onClick={onLogin} className="login-btn-header">
-                        <i className="fas fa-user"></i> <span className="desktop-only">Đăng nhập Quản lý</span>
-                    </button>
-                )}
-            </div>
+          <div className="auth-actions">
+            {user ? (
+              <div className="user-menu">
+                <span className="user-avatar" title={user.email}>
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt="Avatar" />
+                  ) : (
+                    <i className="fas fa-user-circle"></i>
+                  )}
+                </span>
+                <button onClick={handleLogout} className="logout-btn-header" title="Đăng xuất">
+                  <i className="fas fa-sign-out-alt"></i>
+                </button>
+              </div>
+            ) : (
+              <button onClick={onLogin} className="login-btn-header">
+                <i className="fas fa-user"></i> <span className="desktop-only">Đăng nhập Quản lý</span>
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

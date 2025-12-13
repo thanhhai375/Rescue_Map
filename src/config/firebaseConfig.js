@@ -1,9 +1,8 @@
-// ### src/firebaseConfig.js
 import { initializeApp } from "firebase/app";
 import {
   getFirestore, collection, getDocs,
   addDoc, doc, updateDoc, Timestamp,
-  query, where, deleteDoc, orderBy, limit, writeBatch // Thêm writeBatch
+  query, where, deleteDoc, orderBy, limit, writeBatch
 } from "firebase/firestore";
 import {
   getAuth, GoogleAuthProvider,
@@ -27,17 +26,15 @@ const provider = new GoogleAuthProvider();
 
 const incidentsCollection = collection(db, "incidents");
 
-// --- 1. KIỂM TRA LINK ĐÃ TỒN TẠI CHƯA (ĐỂ TRÁNH TRÙNG) ---
 const checkLinkExists = async (link) => {
   if (!link) return false;
   const q = query(incidentsCollection, where("sourceLink", "==", link), limit(1));
   const snapshot = await getDocs(q);
   return !snapshot.empty;
 };
-// --- 2. XÓA TIN CŨ HƠN 48 GIỜ ---
+
 const deleteOldIncidents = async () => {
   try {
-    // 48 giờ trước
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
     const threshold = Timestamp.fromDate(twoDaysAgo);
 
@@ -58,7 +55,6 @@ const deleteOldIncidents = async () => {
   }
 };
 
-// --- CÁC HÀM CŨ GIỮ NGUYÊN ---
 const getIncidents = (hoursFilter = 48) => {
   if (hoursFilter === 'all') {
     const q = query(incidentsCollection,
@@ -83,14 +79,17 @@ const getAllIncidentsForAdmin = () => {
 };
 
 const addIncident = (data) => addDoc(incidentsCollection, data);
+
 const updateIncident = (id, data) => {
   const incidentRef = doc(db, "incidents", id);
   return updateDoc(incidentRef, data);
 };
+
 const deleteIncident = (id) => {
   const incidentRef = doc(db, "incidents", id);
   return deleteDoc(incidentRef);
 };
+
 const serverTimestamp = () => Timestamp.now();
 const handleGoogleLogin = () => signInWithPopup(auth, provider);
 
@@ -98,5 +97,5 @@ export {
   db, auth, onAuthStateChanged, handleGoogleLogin,
   getIncidents, getAllIncidentsForAdmin, addIncident,
   updateIncident, deleteIncident, serverTimestamp,
-  checkLinkExists, deleteOldIncidents // Export thêm 2 hàm này
+  checkLinkExists, deleteOldIncidents
 };

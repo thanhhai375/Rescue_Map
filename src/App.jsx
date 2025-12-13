@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { auth, onAuthStateChanged, getIncidents, handleGoogleLogin, getAllIncidentsForAdmin, deleteOldIncidents } from './config/firebaseConfig'; // Config
-import { REGIONS } from './constants/regionData'; // Constants
-import Header from './components/layout/Header'; // Layout
-import ReportModal from './components/incident/ReportModal'; // Incident
-import FilterModal from './components/map/FilterModal'; // Map
+import { auth, onAuthStateChanged, getIncidents, handleGoogleLogin, getAllIncidentsForAdmin, deleteOldIncidents } from './config/firebaseConfig';
+import { REGIONS } from './constants/regionData';
+import Header from './components/layout/Header';
+import ReportModal from './components/incident/ReportModal';
+import FilterModal from './components/map/FilterModal';
 import { distanceFilterToKm, getDistanceFromLatLonInKm } from './utils/distance';
 
 const ADMIN_EMAILS = [
@@ -38,7 +38,6 @@ function App() {
 
   const location = useLocation();
 
-  // Xác định trang hiện tại
   const isMapPage = location.pathname === '/ban-do';
   const isHomePage = location.pathname === '/';
 
@@ -60,7 +59,7 @@ function App() {
   }, []);
 
   const loadData = async (isAdminUser) => {
-    // Chỉ tải dữ liệu khi ở trang bản đồ để tiết kiệm tài nguyên
+    // Only load data on Map page to save resources
     if (!isMapPage) {
       setIncidents([]);
       return;
@@ -177,12 +176,12 @@ function App() {
     }
   };
 
-const incidentCounts = useMemo(() => {
+  const incidentCounts = useMemo(() => {
     const approvedIncidents = incidents.filter(i => i.status !== 'pending');
     return {
       all: approvedIncidents.length,
       rescue: approvedIncidents.filter(i => i.type === 'rescue').length,
-      supply: approvedIncidents.filter(i => i.type === 'supply').length, // <--- THÊM DÒNG NÀY
+      supply: approvedIncidents.filter(i => i.type === 'supply').length,
       help: approvedIncidents.filter(i => i.type === 'help').length,
       warning: approvedIncidents.filter(i => i.type === 'warning').length,
       news: approvedIncidents.filter(i => i.type === 'news').length,
@@ -231,7 +230,6 @@ const incidentCounts = useMemo(() => {
     });
   }, [incidents, currentFilter, searchQuery, isAdmin, timeFilter, distanceFilter, userLocation]);
 
-
   const outletContext = {
     incidents: filteredIncidents,
     onOpenModal: () => setIsModalOpen(true),
@@ -261,15 +259,11 @@ const incidentCounts = useMemo(() => {
   return (
     <>
       <Header
-        // Chỉ truyền hàm đổi vùng khi ở trang bản đồ
         onRegionChange={isMapPage ? handleRegionChange : null}
         currentRegionKey={currentRegionKey}
-
         user={user}
         isAdmin={isAdmin}
         onLogin={triggerLogin}
-
-        // LOGIC MỚI: Chỉ hiện nút đăng nhập ở trang chủ (isHomePage)
         showAuth={isHomePage}
       />
 
@@ -294,6 +288,5 @@ const incidentCounts = useMemo(() => {
     </>
   );
 }
-
 
 export default App;
