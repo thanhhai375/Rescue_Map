@@ -9,6 +9,7 @@ import { distanceFilterToKm, getDistanceFromLatLonInKm } from './utils/distance'
 
 const ADMIN_EMAILS = [
   "thanhhai30072005@gmail.com",
+  "anh@ut.edu.vn",
 ];
 
 const timeFilterToMs = (filter) => {
